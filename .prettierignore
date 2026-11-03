@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.cache/
+.scaffold/
+src-tauri/target/
+src-tauri/gen/
+pnpm-lock.yaml
+*.png
+*.ico
+*.icns

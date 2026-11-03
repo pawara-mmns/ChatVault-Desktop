@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main local window can only call the side-effect-free backend health check.",
+  "windows": ["main"],
+  "permissions": ["allow-health-check"]
+}
