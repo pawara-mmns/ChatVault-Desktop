@@ -436,6 +436,13 @@ export function ImportChat() {
             vault and local SQLite database.
           </p>
           <div className="storage-actions">
+            <Link
+              to={`/archives/read?archive=${encodeURIComponent(completed.id)}`}
+              className={buttonVariants()}
+            >
+              Read imported chat
+              <ArrowRight size={15} aria-hidden="true" />
+            </Link>
             <Link to="/archives" className={buttonVariants()}>
               Open Archives
               <ArrowRight size={15} aria-hidden="true" />
