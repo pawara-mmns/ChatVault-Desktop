@@ -34,6 +34,7 @@ pub fn run() {
             let state = storage::StorageState::new(local);
             app.manage(state.clone());
             app.manage(devices::DeviceState::default());
+            app.manage(storage::backups::BackupState::default());
             // Bootstrap off the event thread. Commands serialize with this task through the same state.
             tauri::async_runtime::spawn_blocking(move || {
                 let _ = state.run(false, |service| service.overview());
@@ -68,7 +69,17 @@ pub fn run() {
             devices::commands::discover_whatsapp_storage,
             devices::commands::cancel_device_operation,
             devices::commands::get_known_devices,
-            devices::commands::remember_device
+            devices::commands::remember_device,
+            storage::backups::commands::prepare_backup,
+            storage::backups::commands::get_backup_plan_files,
+            storage::backups::commands::start_backup,
+            storage::backups::commands::get_backup_progress,
+            storage::backups::commands::cancel_backup,
+            storage::backups::commands::list_backup_snapshots,
+            storage::backups::commands::get_backup_files,
+            storage::backups::commands::reverify_backup,
+            storage::backups::commands::cleanup_backup_staging,
+            storage::backups::commands::open_backup_location
         ])
         .build(tauri::generate_context!())
         .expect("failed to start ChatVault Desktop")
@@ -80,6 +91,14 @@ pub fn run() {
                 if let Some(devices) = app.try_state::<devices::DeviceState>() {
                     let _ = devices.cancel();
                 }
+                if let Some(backups) = app.try_state::<storage::backups::BackupState>() {
+                    let _ = backups.cancel();
+                }
             }
         });
 }
+// Tauri embeds Common Controls v6 in binaries. Native event tests also link
+// dialog code, so the unit-test EXE must embed that same generated resource.
+#[cfg(all(test, target_env = "msvc"))]
+#[link(name = "resource", kind = "static")]
+unsafe extern "C" {}
