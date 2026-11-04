@@ -23,6 +23,8 @@ import { Archives } from '../features/archives/Archives';
 import { ChatViewerPage } from '../features/viewer/ChatViewerPage';
 import { ImportChat } from '../features/import/ImportChat';
 import { Devices } from '../features/devices/Devices';
+import { BackupPage } from '../features/backups/BackupPage';
+import { BackupProvider } from '../features/backups/BackupProvider';
 import { DeviceProvider } from '../features/devices/DeviceProvider';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { Button } from '../shared/components/ui/button';
@@ -32,6 +34,7 @@ const navigation = [
   { to: '/archives', label: 'Archives', icon: Archive },
   { to: '/import', label: 'Import Chat', icon: ArrowUpFromLine },
   { to: '/devices', label: 'Devices', icon: Smartphone },
+  { to: '/backups', label: 'Backups', icon: HardDrive },
 ];
 export function App() {
   return (
@@ -42,10 +45,17 @@ export function App() {
 }
 
 export function AppShell() {
+  const location = useLocation();
   return (
-    <DeviceProvider>
-      <DesktopShell />
-    </DeviceProvider>
+    <BackupProvider>
+      <DeviceProvider
+        enabled={['/dashboard', '/devices', '/backups'].includes(
+          location.pathname,
+        )}
+      >
+        <DesktopShell />
+      </DeviceProvider>
+    </BackupProvider>
   );
 }
 function DesktopShell() {
@@ -172,6 +182,7 @@ function DesktopShell() {
               <Route path="/archives/read" element={<ChatViewerPage />} />
               <Route path="/import" element={<ImportChat />} />
               <Route path="/devices" element={<Devices />} />
+              <Route path="/backups" element={<BackupPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
