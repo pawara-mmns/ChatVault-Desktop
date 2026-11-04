@@ -1,11 +1,12 @@
 use super::error::{Result, StorageError};
 use rusqlite::{Connection, TransactionBehavior};
 
-pub const SCHEMA_VERSION: u32 = 2;
+pub const SCHEMA_VERSION: u32 = 3;
 const APPLICATION_ID: u32 = 0x43565431; // CVT1
 pub const MIGRATIONS: &[(u32, &str)] = &[
     (1, include_str!("../../migrations/001_initial.sql")),
     (2, include_str!("../../migrations/002_chat_import.sql")),
+    (3, include_str!("../../migrations/003_chat_viewer.sql")),
 ];
 
 pub fn migrate(connection: &mut Connection) -> Result<()> {
@@ -14,6 +15,7 @@ pub fn migrate(connection: &mut Connection) -> Result<()> {
 
 /// One transaction covers the ledger, all pending DDL, and both schema pragmas.
 pub(crate) fn apply(connection: &mut Connection, migrations: &[(u32, &str)]) -> Result<()> {
+    super::viewer::search::register(connection)?;
     let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(|_| StorageError::database())?;

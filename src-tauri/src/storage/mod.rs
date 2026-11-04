@@ -9,6 +9,7 @@ mod repository;
 mod service;
 mod usage;
 mod vault;
+pub mod viewer;
 
 use error::{Result, StorageError};
 use service::StorageService;
