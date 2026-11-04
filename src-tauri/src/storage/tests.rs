@@ -35,7 +35,14 @@ fn repository_counts_decode_empty_and_populated_sqlite_integers() {
         )
         .unwrap();
 
-    assert_eq!(repository::counts(&connection).unwrap(), (2, 1));
+    assert_eq!(repository::counts(&connection).unwrap(), (0, 1));
+    connection
+        .execute(
+            "UPDATE backup_snapshots SET status='complete' WHERE id='first'",
+            [],
+        )
+        .unwrap();
+    assert_eq!(repository::counts(&connection).unwrap(), (1, 1));
 }
 
 #[test]

@@ -1,3 +1,4 @@
+pub mod backups;
 pub mod commands;
 mod database;
 pub mod error;

@@ -75,6 +75,7 @@ impl StorageService {
             let _ = service.initialize_vault();
         }
         let _ = service.recover_imports();
+        let _ = service.backup_recovery();
         Ok(service)
     }
 
@@ -154,6 +155,12 @@ impl StorageService {
         let _coordinator = self.import_coordinator()?;
         let (path, identity) = self.config()?;
         if self.has_import_jobs()?
+            || self
+                .connection
+                .query_row("SELECT EXISTS(SELECT 1 FROM backup_snapshots)", [], |r| {
+                    r.get::<_, bool>(0)
+                })
+                .map_err(|_| StorageError::database())?
             || repository::counts(&self.connection)? != (0, 0)
             || vault::inspect(&path, &identity, &self.protected)?.has_data
         {
@@ -183,7 +190,12 @@ impl StorageService {
             transaction.commit().map_err(|_| StorageError::database())?;
             return self.overview();
         }
-        if repository::counts(&transaction)? != (0, 0) || current_usage.has_data {
+        let has_backups: bool = transaction
+            .query_row("SELECT EXISTS(SELECT 1 FROM backup_snapshots)", [], |r| {
+                r.get(0)
+            })
+            .map_err(|_| StorageError::database())?;
+        if has_backups || repository::counts(&transaction)? != (0, 0) || current_usage.has_data {
             return Err(StorageError::not_empty());
         }
         // Prevent nesting in either direction, including a destination inside the empty current vault.

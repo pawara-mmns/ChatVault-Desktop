@@ -21,7 +21,7 @@ pub fn counts(connection: &Connection) -> Result<(u64, u64)> {
     // SQLite INTEGER values are signed i64; rusqlite does not decode them directly as u64.
     let (snapshots, archives) = connection
         .query_row(
-            "SELECT (SELECT count(*) FROM backup_snapshots), (SELECT count(*) FROM archives)",
+            "SELECT (SELECT count(*) FROM backup_snapshots WHERE status='complete' AND local_integrity!='failed'), (SELECT count(*) FROM archives)",
             [],
             |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
         )
