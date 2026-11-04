@@ -5,7 +5,7 @@ mod media;
 pub mod models;
 mod parser;
 pub(super) mod service;
-mod staging;
+pub(super) mod staging;
 #[cfg(test)]
 mod tests;
 mod zip_processor;

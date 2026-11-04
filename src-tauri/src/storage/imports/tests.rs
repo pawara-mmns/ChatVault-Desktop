@@ -642,7 +642,7 @@ fn schema_v1_upgrade_preserves_existing_rows_and_is_repeatable() {
             .query_row("SELECT count(*) FROM schema_migrations", [], |row| row
                 .get::<_, i64>(0))
             .unwrap(),
-        2
+        migrations::SCHEMA_VERSION as i64
     );
 }
 #[test]
