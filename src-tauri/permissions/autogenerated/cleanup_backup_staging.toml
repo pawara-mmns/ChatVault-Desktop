@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cleanup-backup-staging"
+description = "Enables the cleanup_backup_staging command without any pre-configured scope."
+commands.allow = ["cleanup_backup_staging"]
+
+[[permission]]
+identifier = "deny-cleanup-backup-staging"
+description = "Denies the cleanup_backup_staging command without any pre-configured scope."
+commands.deny = ["cleanup_backup_staging"]

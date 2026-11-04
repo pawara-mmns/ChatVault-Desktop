@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Cable, Info, RefreshCw, Smartphone } from 'lucide-react';
 import { Badge, PageHeading } from '../../shared/components/Page';
@@ -361,9 +362,9 @@ export function Devices() {
             Windows calls; a blocked vendor call may take longer to return. ADB
             is not included or installed.
           </p>
-          <Button disabled variant="outline">
-            Backup Now · Coming in Step 06
-          </Button>
+          <Link to="/backups" className="text-link">
+            Backup Now · Choose files and review
+          </Link>
         </div>
       </div>
     </>

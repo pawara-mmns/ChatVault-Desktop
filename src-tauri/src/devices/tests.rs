@@ -60,6 +60,7 @@ impl Content for Fixture {
 }
 fn object(id: &str, name: &str, folder: bool, storage: bool) -> Object {
     Object {
+        metadata: None,
         id: id.into(),
         name: name.into(),
         folder,
@@ -372,7 +373,7 @@ fn migration_four_preserves_legacy_records_and_notes() {
     let version: u32 = c
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 4);
+    assert_eq!(version, crate::storage::migrations::SCHEMA_VERSION);
     let columns: String = c
         .query_row(
             "SELECT sql FROM sqlite_schema WHERE name='portable_device_notes'",

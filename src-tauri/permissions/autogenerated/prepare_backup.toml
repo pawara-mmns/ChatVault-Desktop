@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-prepare-backup"
+description = "Enables the prepare_backup command without any pre-configured scope."
+commands.allow = ["prepare_backup"]
+
+[[permission]]
+identifier = "deny-prepare-backup"
+description = "Denies the prepare_backup command without any pre-configured scope."
+commands.deny = ["prepare_backup"]

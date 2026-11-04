@@ -31,6 +31,18 @@
     "allow-discover-whatsapp-storage",
     "allow-cancel-device-operation",
     "allow-get-known-devices",
-    "allow-remember-device"
+    "allow-remember-device",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-prepare-backup",
+    "allow-get-backup-plan-files",
+    "allow-start-backup",
+    "allow-get-backup-progress",
+    "allow-cancel-backup",
+    "allow-list-backup-snapshots",
+    "allow-get-backup-files",
+    "allow-reverify-backup",
+    "allow-cleanup-backup-staging",
+    "allow-open-backup-location"
   ]
 }

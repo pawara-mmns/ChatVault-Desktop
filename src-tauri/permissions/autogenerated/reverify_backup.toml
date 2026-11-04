@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reverify-backup"
+description = "Enables the reverify_backup command without any pre-configured scope."
+commands.allow = ["reverify_backup"]
+
+[[permission]]
+identifier = "deny-reverify-backup"
+description = "Denies the reverify_backup command without any pre-configured scope."
+commands.deny = ["reverify_backup"]

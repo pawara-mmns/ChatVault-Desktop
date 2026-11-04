@@ -25,10 +25,14 @@ The read-only desktop reader opens actual imported conversations from Archives o
 
 Implemented real Windows WPD enumeration, verified local USB ancestry, friendly name/manufacturer metadata, conservative OS/category identity, explicit read-only access checks, bounded modern/legacy WhatsApp and Business folder discovery, typed status/diagnostics, cancellation/backpressure, live lifecycle-aware polling, opaque session handles, consented historical device notes, migration 4, Devices UI, and genuine dashboard status. Physical-phone and deterministic mock evidence are separated in VALIDATION.md. ADB is optional and intentionally omitted. No phone bytes are read or copied, and no backup snapshot is created.
 
-## Step 06 — not started
+## Step 06 - Local WhatsApp Backup Engine
 
-Actual accessible-file copying, backup jobs, progress/verification, snapshot creation, and recovery are not implemented. Future work can reuse adapter/discovery boundaries but must perform fresh selection and permission checks. Device notes are not stable hardware identity. Sending/editing/deleting messages, guessed account ownership, cloud services and automatic external links remain outside this change.
+Implemented explicit six-stage selection/preflight, separate WhatsApp/Business sources, actual category/individual file authorization, WPD GetStream/STGM_READ bounded transfers, SHA-256 incoming/local checks and optional independent source reread, durable jobs/files/snapshots/manifests, cancellation, conservative interrupted recovery, owned staging cleanup, history/details/reverification/validated Explorer opening, dashboard integration and migration 5. Existing import/viewer/search/media/device/storage tests remain in the suite.
+
+Step 06.2 implements bounded scoped preflight, operation timing/progressive counters, incomplete results, slow/pending states, Cancel Scan, safe retry and stale-event guards. Real scoped Business discovery and one 29,816-byte image transfer with independent source/local SHA-256 and persisted history passed. Larger hardware and native wizard interaction checks remain pending; exact evidence is in VALIDATION.md.
+
+Step 07 has not started. No restore/decryption, auto-resume, incremental scheduling, keys, cloud or retention/deletion feature was added.
 
 ## Later boundaries
 
-Accessible-file backup creation, overlap merging, explicit identical-file reimport, vault migration, encryption/key management, retention/deletion, recovery tooling, and release signing require separate work. Cloud services, authentication, analytics, WhatsApp Web automation, root access, private messaging APIs, and encryption bypass remain outside scope.
+Overlap merging, explicit identical-file reimport, vault migration, encryption/key management, retention/deletion, recovery tooling, and release signing require separate work. Cloud services, authentication, analytics, WhatsApp Web automation, root access, private messaging APIs, and encryption bypass remain outside scope.

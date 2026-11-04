@@ -44,9 +44,11 @@ const Context = createContext<DevicesContext>({
 export function DeviceProvider({
   children,
   service = deviceService,
+  enabled = true,
 }: {
   children: ReactNode;
   service?: DeviceService;
+  enabled?: boolean;
 }) {
   const [list, setList] = useState(empty);
   const [busy, setBusy] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function DeviceProvider({
   const generation = useRef(0);
   const available = service.available();
   const refresh = useCallback(async () => {
-    if (!available || running.current) return;
+    if (!available || !enabled || running.current) return;
     running.current = true;
     const ticket = ++generation.current;
     setBusy('Scanning portable devices');
@@ -73,7 +75,7 @@ export function DeviceProvider({
       running.current = false;
       if (ticket === generation.current) setBusy(null);
     }
-  }, [available, service]);
+  }, [available, service, enabled]);
   const inspect = useCallback(
     async (id: string, discovery: boolean) => {
       if (running.current) return;
@@ -120,7 +122,7 @@ export function DeviceProvider({
     generation.current++;
   }, []);
   useEffect(() => {
-    if (!available) return;
+    if (!available || !enabled) return;
     let disposed = false;
     const scan = () => {
       if (!disposed && document.visibilityState !== 'hidden') void refresh();
@@ -145,7 +147,7 @@ export function DeviceProvider({
       window.removeEventListener('focus', scan);
       void service.cancel().catch(() => {});
     };
-  }, [available, refresh, service, invalidate]);
+  }, [available, refresh, service, invalidate, enabled]);
   return (
     <Context.Provider
       value={{

@@ -1,3 +1,4 @@
+import type * as BackupModule from '../services/backups';
 import type * as DeviceModule from '../services/devices';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -10,6 +11,13 @@ import { freshStorage } from './storageFixture';
 import { formatBytes, nativeStorageService } from '../services/storage';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(), isTauri: vi.fn() }));
+vi.mock('../services/backups', async (original) => {
+  const actual = await original<typeof BackupModule>();
+  return {
+    ...actual,
+    backupService: { ...actual.backupService, available: () => false },
+  };
+});
 vi.mock('../services/devices', async (original) => {
   const actual = await original<typeof DeviceModule>();
   return {

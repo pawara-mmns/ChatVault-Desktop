@@ -35,10 +35,18 @@ database.exec(
     'utf8',
   ),
 );
+database.exec(
+  readFileSync(
+    new URL('../src-tauri/migrations/005_local_backups.sql', import.meta.url),
+    'utf8',
+  ),
+);
 database.exec('COMMIT;');
 for (const table of [
   'app_settings',
   'devices',
+  'backup_jobs',
+  'backup_files',
   'backup_snapshots',
   'archives',
   'conversations',
@@ -95,5 +103,5 @@ assert.equal(
 );
 database.close();
 console.log(
-  'PASS: initial SQL schema, empty tables, UTC timestamp defaults, constraints, foreign keys, transactional DDL rollback (in-memory SQLite). Rust migration/service tests remain separate.',
+  'PASS: SQL migrations 1-5, empty tables, UTC timestamp defaults, constraints, foreign keys, transactional DDL rollback (in-memory SQLite). Rust migration/service tests remain separate.',
 );
