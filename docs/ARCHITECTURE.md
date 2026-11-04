@@ -1,4 +1,49 @@
-# Architecture — Step 05
+# Architecture — Step 06
+
+## Step 06.2 discovery fixes
+
+Preflight uses a dedicated owned worker and a bounded monitor. ScanTrace tracks operation start/return, object/folder/file observations, inventoried entries/known bytes, errors, last successful code-defined operation and elapsed/pending-call duration. The monitor publishes real progress every 500 ms, even when the worker is waiting in a vendor call; snapshot polling refreshes elapsed/pending state after the response deadline. Normal transfer events keep their prior throttle.
+
+ScanOptions are validated in Rust: one-source category subset, 1-100,000 objects, 1-50,000 files, 0-16 category depth, 1-180 seconds (default 60). Scoped results explicitly identify scannedCategories. Fast folder lookup stops enumeration after the matching directory instead of fetching every sibling. Enumeration requests size/name/type together and streams usable metadata into the planner, avoiding a second GetValues per file. Returned files survive a later enumeration error. Duplicate object IDs/cycles, limits and errors never yield a falsely complete inventory. Single-category scans do not walk unselected media libraries.
+
+The response monitor permits one second of grace after the time budget for cooperative completion. A call still pending after that returns driver_pending with phase scan_waiting, requests cancellation and keeps the worker/COM/device/coordinator alive. Conflicting jobs remain blocked. When Windows returns, abandoned results are discarded and scan_failed is published; retry is safe only after resource release. Cancellation returning normally publishes scan_cancelled and discards the plan. Operation UUIDs plus monotonically increasing revisions prevent delayed scan/event responses from replacing terminal or later jobs. No SQLite snapshot/job row is created by discovery.
+
+[IPortableDevice::Cancel](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-iportabledevice-cancel) and [enumerator Cancel](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-ienumportabledeviceobjectids-cancel) were reviewed. The latter cancels all pending session I/O rather than one selected operation. This implementation intentionally retains cooperative checks between calls and does not share a live worker-owned COM interface with an uninitialized control thread or imply every vendor call is interruptible. COM initialization, use, Close/release and uninitialization remain worker-local.
+
+The UI separates preflight observations from copy/verification counters, exposes scopes/limits, explains scans longer than ten seconds and pending cancellation, animates indeterminate work without a percentage, and ignores stale publication revisions. Scan diagnostics are sanitized; original source metadata is never included in the log payload.
+
+## Step 06 backup engine
+
+The React six-stage wizard and history use `services/backups.ts` and an app-level `BackupProvider`. Main-window IPC is limited to `prepare_backup`, `get_backup_plan_files`, `start_backup`, `get_backup_progress`, `cancel_backup`, `list_backup_snapshots`, `get_backup_files`, `reverify_backup`, `cleanup_backup_staging` and `open_backup_location`. Event listen/unlisten is scoped to the local application capability. No generic filesystem, SQL, shell or device-object endpoint exists. Device observations refresh only on visible dashboard/device/backup routes; job-progress polling reads memory, not the phone.
+
+Rust `storage/backups` separates models, planner, transfer, safe files/manifests, repository, coordinator and commands. The planner traverses only actual category folders under one selected package's modern/legacy candidates. It records known bytes and unknown sizes, observed unsupported skips and restriction counts, never guesses counts inside inaccessible subtrees, and retains original names as local metadata. Only encrypted-looking .cryptNNN database files are selected from Databases; discovered media folders are opaque binary files. Issued plan/file UUIDs authorize a subset; WPD object IDs remain memory-only. Collision-safe UUID-prefixed paths preserve hierarchy and original names remain in metadata. Bounds and capacity behavior are listed in README.
+
+### Native read pipeline
+
+The same worker that opens GENERIC_READ WPD content calls `IPortableDeviceContent::Transfer`, then `IPortableDeviceResources::GetStream` with `WPD_RESOURCE_DEFAULT` and `STGM_READ`. `IStream::Read` is looped until EOF, honoring short successful reads; the suggested buffer is clamped to 16-512 KiB. The stream, content and COM apartment are released on that worker. No COM interfaces cross threads. No Explorer automation or phone path-as-object-ID conversion exists. Official references: [Microsoft content transfer](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/transferring-content-from-the-device-to-a-pc), [GetStream](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-iportabledeviceresources-getstream).
+
+Each incoming stream is hashed while written to an exclusively created .partial-UUID file. The file is flushed/synced, reopened through ordinary-file/path validation, and independently SHA-256 hashed. Reliable reported size must match. Source name/size metadata is checked before/after. Optional source rereading opens another stream and compares its SHA-256 and byte count. Only successful files are renamed to final relative names. Same-size live mutations may escape metadata checks; even matching second reads do not establish atomic consistency across files or WhatsApp-native restorability.
+
+### Publication and recovery protocol
+
+An installation-level OS lease shared with imports/vault changes prevents conflicting operations across processes. DeviceState reserves one device worker; backup cancellation has its own token so a discovery page unmount cannot cancel a backup. SQLite locks are short-lived and never span a WPD read or file hash.
+
+1. Persist an in-progress snapshot, job and selected file rows in a transaction before copying.
+2. Exclusively create temp/backup-UUID with a snapshot/installation marker. Copy and verify files there. Persist per-file records and job progress; chunk summaries are best-effort every two seconds and phase/file boundaries require persistence.
+3. Persist committing, sync and atomically rename a newly created manifest, validate marker/tree, and rename the owned directory into backups/UUID without replacement (MoveFileExW WRITE_THROUGH on Windows).
+4. Only after filesystem promotion commit completed/completed_with_warnings in SQLite. A failed selected file prevents completion. Final stored byte counts sum verified file records; partial incoming bytes are progress, not completed storage.
+
+Filesystem publication and SQLite commit are separate; no cross-system atomicity is claimed. Restart obtains the coordinator lease and marks unfinished jobs interrupted, including when the vault drive is absent. It never auto-completes from a manifest and never deletes or resumes files automatically. A crash after directory promotion but before database commit may leave a published directory associated with an interrupted row; it is preserved for manual inspection, excluded from successful counts, and not removed by staging cleanup. Retry always makes a new snapshot. Cleanup requires an incomplete database status, an exact temp/backup-UUID directory, matching installation/snapshot marker, and a bounded tree free of symlinks/reparse/hard links. Previous snapshots and unrelated files are retained.
+
+### Persistence and manifests
+
+Migration `005_local_backups.sql` extends the existing backup_snapshots table without rebuilding it: source/display name, phase, file/success/failure/skipped counts, verified bytes, manifest path, warning JSON, local integrity and last-check timestamp. New STRICT backup_jobs stores durable phase/progress/errors/staging relative path; backup_files stores source-relative logical path, safe local path, original filename, expected/actual bytes, SHA-256 and separate local/source/size states. The legacy device FK stays nullable: an unknown portable device is not coerced into an Android identity, and no hardware identifier or automatic friendly-name association is persisted. Schema version/ledger advance transactionally to 5.
+
+Manifest schema 1 records snapshotId, createdAt, source, optional deviceDisplayName, null deviceAssociation, backupMode, phase, inventoryComplete, skippedEntries, inaccessibleLocations, warnings, sourceConsistency, and files. Each file records ID/category, logical/local relative paths, original name, reported/actual bytes, SHA-256, localVerification, sourceVerification, sizeValidation, state and errorCode. Failed staging manifests include failed/pending selected records when writing is possible. Manifests contain no encryption key or parsed message content. Original filenames may themselves be sensitive. Manifests describe copy-time evidence; later local checks update SQLite states rather than rewriting immutable original evidence.
+
+History paginates 20 snapshots and 50 files. Reverification validates ownership, manifest schema/snapshot ID and the complete database hash/path inventory before reading local bytes. It persists per-file hash outcomes and snapshot integrity; a crash while checking is marked verification_interrupted on restart. Corruption is excluded from completed counts/bytes. Dashboard counts are authoritative and history exposes current/last job state separately from imported chats. Explorer opens only a validated completed snapshot directory after an explicit action, never a copied attachment.
+
+Progress events target only main, at most every 250 ms plus phase/file transitions. A one-second fallback polls current memory. Fields are actual phase/source/current name, verified-file counts, failed count, written bytes, known/unknown totals, average bytes/elapsed and local-read bytes. Unknown totals use indeterminate progress. Filenames appear in local UI/manifest only, not application logs. Cancellation is cooperative between chunks/Windows calls; driver calls cannot safely be killed. App exit requests cancellation; durable startup recovery handles abrupt termination.
 
 ## Windows USB discovery
 
@@ -6,7 +51,7 @@
 
 `IPortableDeviceManager::{RefreshDeviceList,GetDevices,GetDeviceFriendlyName,GetDeviceManufacturer}` enumerate locally installed portable interfaces and available metadata. `CM_Locate_DevNodeW`, `CM_Get_Device_Interface_PropertyW(DEVPKEY_Device_InstanceId)`, `CM_Get_Device_IDW`, and `CM_Get_Parent` establish local USB ancestry without parsing an interface path as an instance ID. Unverified transports remain visible but cannot be opened. No remote WPD device is opened. A device-interface symbolic link must first resolve to its PnP instance; this was exercised with real hardware.
 
-Each operation creates a worker with `CoInitializeEx(COINIT_MULTITHREADED)`. All COM creation/use/release and `CoUninitialize` stay on that thread; interfaces never cross threads or enter global cache. `CoTaskMemFree` releases every returned WPD string, including partial failure batches. `IPortableDeviceFTM` is opened with `WPD_CLIENT_DESIRED_ACCESS=GENERIC_READ` from the first attempt. `IPortableDeviceContent`, `IPortableDeviceProperties::GetValues`, explicit key collections, `EnumObjects`, and `IEnumPortableDeviceObjectIDs::Next` implement metadata-only access. Client property setters configure the in-memory client-information object only; no device property setter is used. No resources/stream/transfer/write/copy/move/delete/send-command APIs are called.
+Each operation creates a worker with `CoInitializeEx(COINIT_MULTITHREADED)`. All COM creation/use/release and `CoUninitialize` stay on that thread; interfaces never cross threads or enter global cache. `CoTaskMemFree` releases every returned WPD string, including partial failure batches. `IPortableDeviceFTM` is opened with `WPD_CLIENT_DESIRED_ACCESS=GENERIC_READ` from the first attempt. `IPortableDeviceContent`, `IPortableDeviceProperties::GetValues`, explicit key collections, `EnumObjects`, and `IEnumPortableDeviceObjectIDs::Next` implement metadata-only access. Client property setters configure the in-memory client-information object only; no device property setter is used. These metadata discovery commands do not read content streams. Explicit Step 06 backup commands add read-only resource streams as described below; no device mutation API is called.
 
 Only device type/protocol/transport, object name/original filename/content type, and functional storage category are queried. No serial, IMEI, account, battery, capacity, Android version, or private database properties are requested. A `Phone` WPD type is not Android evidence. Only an exact explicit Android protocol report establishes `driver_reported_android`; otherwise identity stays unknown. A successful storage-root enumeration probe establishes access at that moment, not access to every file or a permanent authorization.
 
@@ -20,7 +65,7 @@ The shared provider polls enumeration every 15 seconds while visible, suppresses
 
 The existing 20 commands remain; eight narrow main-window permissions add `list_connected_devices`, `refresh_connected_devices`, `get_device_details`, `check_device_file_access`, `discover_whatsapp_storage`, `cancel_device_operation`, `get_known_devices`, and `remember_device`. Expensive commands are asynchronous; no arbitrary path, executable, SQL, or WPD write endpoint exists. The remember command requires the current issued handle and a boolean preference; the UI requires explicit consent.
 
-Migration 4 adds a separate STRICT `portable_device_notes` table (random local ID, display name, optional category, last detected UTC milliseconds, preferred flag). The initial `devices` table enforces Android-only platform and already participates in backup foreign keys, so it is preserved rather than rebuilt to adopt unknown portable devices. Notes are bounded to 100 and are separate from live observations. No raw/hashed hardware recognition identifier is saved, and no automatic matching by friendly name is attempted. Preferences are historical notes only after reconnect/restart. Step 06 can reuse adapter boundaries and require a fresh explicit selection/authorization; copying, resources, backup jobs, snapshots and decryption are not implemented here. ADB is intentionally omitted.
+Migration 4 adds a separate STRICT `portable_device_notes` table (random local ID, display name, optional category, last detected UTC milliseconds, preferred flag). The initial `devices` table enforces Android-only platform and already participates in backup foreign keys, so it is preserved rather than rebuilt to adopt unknown portable devices. Notes are bounded to 100 and are separate from live observations. No raw/hashed hardware recognition identifier is saved, and no automatic matching by friendly name is attempted. Preferences are historical notes only after reconnect/restart. Step 06 reuses these adapter boundaries with fresh explicit selection and read-only resource streams. Decryption remains unsupported. ADB is intentionally omitted.
 
 Official API semantics: [enumerating WPD devices](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/enumerating-devices), [read-only device Open](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-iportabledevice-open), [object enumeration](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/enumerating-content), [device properties](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/device-properties), [CfgMgr32 interface-to-instance example](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/porting-from-setupapi-to-cfgmgr32), and [WPD cancellation semantics](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-iportabledevice-cancel). The app uses cooperative cancellation between calls rather than sharing a COM interface across threads to force a cancel.
 
@@ -111,7 +156,7 @@ Sessions expire after 30 minutes and are checked/released on subsequent operatio
 
 ## Preserved Step 02 storage baseline
 
-The sections below describe the initial schema/storage foundation. Migration 2 and the import commands above extend that baseline; schema version 4 is current.
+The sections below describe the initial schema/storage foundation. Migration 2 and the import commands above extend that baseline; schema version 5 is current.
 
 ## Responsibilities
 
@@ -124,7 +169,7 @@ React owns presentation, routing, accessibility, and the existing localStorage a
 | `src/features/settings/StorageSettings.tsx` | Storage & Vault controls and feedback inside the existing Settings design             |
 | `src/features/storage/`                     | Shared state, serialized requests, safe feedback; synchronizes routes                 |
 | `src/services/storage.ts`                   | Typed storage contract and sole storage invoke boundary; browser rejection            |
-| `src/services/contracts.ts`                 | Import/archive interface exports and reserved device/backup interfaces                |
+| `src/services/contracts.ts`                 | Import/archive interface exports and typed device/backup interfaces                   |
 | `src/domain/models.ts`                      | UI-facing domain types, including nullable sender and timestamp uncertainty           |
 | `src/platform/backend.ts`                   | Existing side-effect-free health command wrapper                                      |
 | `src-tauri/src/storage/database.rs`         | Safe database opening, foreign keys, timeout, WAL, durability, quick check            |
@@ -155,7 +200,7 @@ Frontend StorageProvider prevents conflicting requests, disables controls while 
 
 `<app_local_data_dir>/database/chatvault.sqlite3` is independent of the current vault. Windows normally resolves the base under `%LOCALAPPDATA%\app.chatvault.desktop`. The application does not store databases in the repository or `public/`.
 
-`PRAGMA application_id = 0x43565431` identifies ChatVault. `PRAGMA user_version` and `schema_migrations(version, applied_at)` both track the current version 4. All pending embedded migrations, ledger entries, and version/identity changes share one immediate transaction. Failure drops/rolls back that transaction. Reapplying a completed version preserves rows. Unknown, inconsistent, and newer schemas fail safely. A nonempty unrecognized SQLite database is never adopted. Orphan WAL/SHM/journal files without the main database cause an error rather than replacement creation.
+`PRAGMA application_id = 0x43565431` identifies ChatVault. `PRAGMA user_version` and `schema_migrations(version, applied_at)` both track the current version 5. All pending embedded migrations, ledger entries, and version/identity changes share one immediate transaction. Failure drops/rolls back that transaction. Reapplying a completed version preserves rows. Unknown, inconsistent, and newer schemas fail safely. A nonempty unrecognized SQLite database is never adopted. Orphan WAL/SHM/journal files without the main database cause an error rather than replacement creation.
 
 Application creation/import timestamps are nonnegative UTC Unix epoch **milliseconds** in INTEGER columns. SQLite supplies initial timestamps with `unixepoch('subsec')`. Imported chat timestamps retain their original string and nullable local ISO value with timezone uncertainty; their UTC INTEGER timestamp remains NULL.
 
@@ -172,7 +217,7 @@ Application creation/import timestamps are nonnegative UTC Unix epoch **millisec
 
 Strict tables enforce storage types. Foreign key and chronological indexes cover device snapshots, archive creation order, conversations per archive, messages per conversation/time/ID, and attachments per message. SQL path checks reject traversal markers, backslashes, colons, and paths outside the relevant managed prefix. Future content writes must additionally validate canonical paths in Rust; schema checks alone are not file-access authorization.
 
-Only the confirmed import service writes archives, conversations, messages, media, and attachments. Creation of original Android device/backup records remains future work; Step 05 saves separate consented portable-device notes. The table above describes migration 1; migration 2's additions are detailed earlier.
+Only the confirmed import service writes archives, conversations, messages, media, and attachments. Original Android device creation remains unused; Step 05 saves separate consented portable-device notes and Step 06 creates snapshots with optional device display metadata. The table above describes migration 1; migration 2's additions are detailed earlier.
 
 ## Vault protocol
 
