@@ -5,6 +5,9 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
 const database = new DatabaseSync(':memory:');
+database.function('chatvault_fold', { deterministic: true }, (value) =>
+  value.normalize('NFC').toLowerCase().normalize('NFC'),
+);
 database.exec(
   'PRAGMA foreign_keys = ON; PRAGMA trusted_schema = OFF; BEGIN IMMEDIATE;',
 );
@@ -17,6 +20,12 @@ database.exec(
 database.exec(
   readFileSync(
     new URL('../src-tauri/migrations/002_chat_import.sql', import.meta.url),
+    'utf8',
+  ),
+);
+database.exec(
+  readFileSync(
+    new URL('../src-tauri/migrations/003_chat_viewer.sql', import.meta.url),
     'utf8',
   ),
 );
