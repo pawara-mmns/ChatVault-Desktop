@@ -15,9 +15,11 @@ afterEach(() => {
 });
 function page(service: DeviceService) {
   return render(
-    <DeviceProvider service={service}>
-      <Devices />
-    </DeviceProvider>,
+    <MemoryRouter>
+      <DeviceProvider service={service}>
+        <Devices />
+      </DeviceProvider>
+    </MemoryRouter>,
   );
 }
 async function select() {
@@ -25,12 +27,15 @@ async function select() {
     await screen.findByRole('button', { name: /Synthetic phone/ }),
   );
 }
-it('shows a genuine completed zero-device observation and a disabled backup action', async () => {
+it('shows a genuine completed zero-device observation and a backup-wizard link', async () => {
   page(deviceFixture());
   expect(
     await screen.findByRole('heading', { name: 'No device detected' }),
   ).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Backup Now/ })).toBeDisabled();
+  expect(screen.getByRole('link', { name: /Backup Now/ })).toHaveAttribute(
+    'href',
+    '/backups',
+  );
   expect(screen.getByText(/charging-only/)).toBeInTheDocument();
 });
 it('browser fallback never fabricates a phone or invokes refresh', () => {
