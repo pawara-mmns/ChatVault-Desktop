@@ -77,8 +77,9 @@ export function Archives() {
           </Button>
         </div>
         <p className="toolbar-note">
-          Filter archive titles and original filenames. Full conversation
-          viewing and message search are planned for Step 04.
+          Filter archive titles and original filenames, or open the local reader
+          to browse and search saved messages.{' '}
+          <Link to="/archives/read">Open chat reader</Link>
         </p>
         {loading && (
           <p className="library-status" role="status">
@@ -149,6 +150,16 @@ export function Archives() {
                         </Badge>
                       </td>
                       <td>
+                        <Link
+                          to={`/archives/read?archive=${encodeURIComponent(item.id)}`}
+                          className={buttonVariants({
+                            variant: 'outline',
+                            size: 'sm',
+                          })}
+                          aria-label={`Read ${item.title}`}
+                        >
+                          Read chat
+                        </Link>{' '}
                         <Button
                           variant="outline"
                           size="sm"
@@ -250,7 +261,11 @@ export function Archives() {
             </ul>
           )}
           <p className="helper-text">
-            The full conversation viewer will be introduced in Step 04.
+            <Link
+              to={`/archives/read?archive=${encodeURIComponent(summary.id)}`}
+            >
+              Open this archive in the chat reader
+            </Link>
           </p>
         </section>
       )}
