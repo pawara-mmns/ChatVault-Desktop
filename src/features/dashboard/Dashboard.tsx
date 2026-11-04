@@ -15,9 +15,13 @@ import { Button } from '../../shared/components/ui/button';
 import { useStorage } from '../storage/StorageProvider';
 import { StorageFeedback } from '../storage/StorageFeedback';
 import { formatBytes } from '../../services/storage';
+import { useDevices } from '../devices/DeviceProvider';
+import { accessLabel } from '../../services/devices';
 import { RecentArchives } from '../archives/RecentArchives';
 export function Dashboard() {
   const { overview, loading, error, initialize, refresh } = useStorage();
+  const devices = useDevices();
+  const firstDevice = devices.list.devices[0];
   return (
     <>
       <PageHeading
@@ -185,15 +189,29 @@ export function Dashboard() {
           </div>
           <div className="device-illustration">
             <Smartphone size={46} strokeWidth={1.2} aria-hidden="true" />
-            <span className="device-cross">×</span>
+            {!firstDevice && <span className="device-cross">×</span>}
           </div>
-          <h3>Not connected</h3>
-          <p>Connect your Android phone to get ready for future backups.</p>
+          <h3>
+            {devices.busy
+              ? 'Scanning devices…'
+              : firstDevice
+                ? (firstDevice.name ?? 'Portable device detected')
+                : devices.available && !devices.list.stale
+                  ? 'No device connected'
+                  : 'Live device state unavailable'}
+          </h3>
+          <p>
+            {firstDevice
+              ? accessLabel[firstDevice.access]
+              : 'Connect and unlock your Android phone, choose File Transfer, then refresh in Devices.'}
+          </p>
           <Link to="/devices" className="text-link">
             Connection guide <ArrowRight size={14} aria-hidden="true" />
           </Link>
           <div className="device-footnote">
-            Device detection is not yet available
+            {devices.available
+              ? 'Live WPD detection · checks every 15 seconds while visible'
+              : 'USB detection requires the Windows desktop app'}
           </div>
         </section>
       </div>
