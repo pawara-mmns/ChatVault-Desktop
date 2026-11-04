@@ -1,4 +1,16 @@
-# Security and privacy — Step 04
+# Security and privacy — Step 05
+
+## Read-only device boundary
+
+Windows WPD enumeration is real and local. Before opening any content interface, CfgMgr32 must establish local USB ancestry. Network/Bluetooth/unverified transports are never opened. Every open explicitly requests GENERIC_READ; no phone write, transfer stream, file-copy, delete, move, format, decryption, root, debugging, lock-bypass, cloud, telemetry, or shell-command operation exists. ADB is not included or installed. No administrator elevation is requested by application device access.
+
+Enumeration does not imply permission. Only the explicit Check file access / Scan WhatsApp Storage action opens a selected live issued handle. Discovery authorizes only a bounded set of conventional folder/filename metadata checks. It never reads encrypted database or media bytes. Media category checks do not enumerate each file's metadata. Encrypted backup findings are boolean, not a filename list or chat recovery claim. Vendor restrictions and absent paths are distinct from proof that data is absent.
+
+PnP/device/object identifiers are held only in operation/session memory, never returned to React, logged, or persisted. Serial, IMEI, account identity, OS version, battery and capacity are never queried. Windows error strings are not logged/exposed: diagnostics contain stable categories and numeric HRESULT only. Metadata strings are length/control/bidi-filtered; UI uses escaped React text. COM memory/interfaces/apartments have worker-local RAII cleanup. Bounded enumeration/caches/time budgets, single-worker backpressure, cooperative cancellation, and frontend request generations protect responsiveness and stale results. A synchronous hung vendor call cannot be safely killed; cancellation does not promise instant driver interruption.
+
+Migration 4 adds only explicit-consent local device notes. Names can themselves be personal and remain unencrypted SQLite data; the consent text lists the saved fields. No raw identifier, hashed fingerprint, object path, discovery filename, or connected flag is stored. Historical notes cannot recognize a device after reconnect/restart. The original Android devices and all archive/backup records are preserved. Live observations expire and refresh independently from notes. No preference initiates any access or backup automatically.
+
+Eight scoped app commands augment the existing 20 permissions. No shell/fs/SQL/WPD mutation capabilities or broad resource scopes are enabled. The custom media protocol remains limited to the local archive vault; a device handle cannot be used as a media/vault path. Offline code paths introduce no HTTP client or listener. The development server uses loopback only; packet capture and physical network isolation are separate validations rather than claimed guarantees against OS/vendor behavior.
 
 ## Read-only viewer and media boundary
 
@@ -26,13 +38,13 @@ A durable import journal precedes final directory creation. SQLite commits every
 
 Chat timestamps remain timezone-unknown; ambiguous date order requires user selection. UTC conversion is not invented. The original bytes, original timestamp strings, local normalized values, chosen date order, hashes, media names, missing references, and diagnostics are retained. The read-only viewer preserves this metadata. Stored media types are extension hints and no media decoder/browser is invoked by importing.
 
-**Imports, SQLite, originals, extracted media, and temporary staging are not encrypted by ChatVault.** Use a trusted local vault and consider OS disk encryption/access control. Export files contain sensitive plaintext; no content or hash is uploaded to a service. The app does not provide WhatsApp native-backup decryption, account access, scraping, or phone discovery.
+**Imports, SQLite, device notes, originals, extracted media, and temporary staging are not encrypted by ChatVault.** Use a trusted local vault and consider OS disk encryption/access control. Export files contain sensitive plaintext; no content or hash is uploaded to a service. Phone discovery is limited to explicit read-only metadata access; the app does not provide WhatsApp native-backup decryption, account access, or scraping.
 
 ## Data and offline behavior
 
 SQLite and the default vault live under Tauri's application-local data directory, normally `%LOCALAPPDATA%\app.chatvault.desktop` on Windows. The database is always `<app-local-data>/database/chatvault.sqlite3`; the vault root is a separate persisted setting. Browser localStorage holds only the existing appearance key. Application-local storage contains migration/configuration metadata and an initially empty relational content schema.
 
-There is no cloud database, authentication server, analytics, telemetry, external API request, updater, phone adapter, or WhatsApp file modification. All application file processing remains in Rust. Bundled assets and IPC work without an internet service; development installation/build tools can require downloads. Only explicitly chosen exports are imported. Backup creation and phone discovery are not enabled.
+There is no cloud database, authentication server, analytics, telemetry, external API request, updater, or WhatsApp file modification. File processing and the read-only local USB adapter remain in Rust. Bundled assets and IPC work without an internet service; development installation/build tools can require downloads. Only explicitly chosen exports are imported. Phone discovery is metadata-only; backup creation remains disabled.
 
 ## Least privilege
 

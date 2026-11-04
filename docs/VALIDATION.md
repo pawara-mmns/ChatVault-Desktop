@@ -1,123 +1,129 @@
-# Step 04 validation and acceptance
+# Step 05 validation and acceptance
 
-Date: 2026-11-04 (Asia/Colombo). Windows x64, Node 24.18.0, pnpm 12.14.0, Rust/Cargo 1.99.1 MSVC, Tauri 2.12.5 and WebView2. Only deterministic synthetic inputs were used. No private conversations entered the repository or regular vault. No Git operations were performed. Step 05 is not started.
+Date: 2026-11-04 (Asia/Colombo). Windows x64, Rust/Cargo 1.99.1 MSVC, Node 24.18.0, pnpm 12.14.0, Tauri 2.12.5, windows crate 0.62.2, WebView2. No Git operations were performed. Step 06 is not started. The prior [Step 04 report](VALIDATION_STEP04.md) is retained as historical evidence.
 
-## Implementation and exact check results
+## Implementation
 
-The reader opens existing imports from Archives and import completion, uses real metadata/message repositories, retains source order and timezone uncertainty, provides neutral sender/system/deleted bubbles, cursor/context navigation, scoped/global literal search, private on-demand image/audio/video access, and explicit registered document opening. Existing shell/themes/import/storage behavior remains in place.
+Real local Windows Portable Devices enumeration replaces the placeholder Devices page. Temporary app UUID handles, USB ancestry verification, worker-local COM lifetimes, explicit GENERIC_READ access checks, bounded metadata-only WhatsApp/Business discovery, accurate diagnostic categories, cancellation/backpressure, lifecycle-aware polling, and consented historical notes are implemented. The dashboard consumes live state without changing backup counts. No phone bytes are copied or read, and no phone mutation, root, ADB, decryption, cloud, telemetry, or automatic backup is introduced.
 
-| Check                                                                     | Actual final result                                                       |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `pnpm.cmd build`                                                          | Passed: strict TypeScript and Vite production bundle                      |
-| `pnpm.cmd lint`                                                           | Passed: zero warnings                                                     |
-| `pnpm.cmd test --disableConsoleIntercept`                                 | Passed: 9 files, 66 tests                                                 |
-| `cargo check --manifest-path src-tauri/Cargo.toml --locked`               | Passed                                                                    |
-| `cargo test --manifest-path src-tauri/Cargo.toml --locked -- --nocapture` | Passed: 62 tests; binary/doc targets also passed                          |
-| `node scripts/check-schema.mjs`                                           | Passed: migrations 1–3 and in-memory schema/constraint/FK/rollback checks |
-| `pnpm.cmd format:check`                                                   | Passed                                                                    |
-| `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check`               | Passed                                                                    |
+The adapter/service/discovery/persistence/IPC/frontend boundaries and official API references are documented in [ARCHITECTURE](ARCHITECTURE.md); least privilege and privacy limits are in [SECURITY](SECURITY.md). [README](../README.md) contains connection instructions and precise scan limits.
 
-The 49 existing Windows Rust tests and 41 existing frontend tests remain in the passing suite. New coverage adds conversation counts/previews, exact cursor order, foreign/missing cursors, anchor context, sender/text/Unicode/Sinhala/German searches, literal FTS syntax, short-query continuation, preserving/index-backfilling migration, transactional index failure rollback, reopening, owned media/token/origin/range validation, missing/changed/invalid files, unauthorized references, hard-link escape, PNG/WAV metadata, and the large-chat benchmark.
+## Executed checks
 
-Frontend coverage includes selection by keyboard, date/sender/multiline/Unicode/plain-HTML rendering, scoped/global result navigation, repeated selection of the same target, safe metacharacter/canonical-equivalence highlights, bounded pages/text sections, real metadata, loading/error/retry/empty/browser states, lazy media authorization/revocation, missing/invalid images, codec feedback, audio speed/native controls, explicit document opening, lightbox zoom/fit/close and light/dark bubble rendering.
+| Check                                                                                             | Actual result                                                                                                        |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `pnpm.cmd build`                                                                                  | Passed: strict TypeScript and Vite production bundle                                                                 |
+| `pnpm.cmd lint`                                                                                   | Passed, zero warnings                                                                                                |
+| `pnpm.cmd test`                                                                                   | Passed: 11 files, 83 tests                                                                                           |
+| `cargo check --manifest-path src-tauri/Cargo.toml --locked`                                       | Passed                                                                                                               |
+| `cargo test --manifest-path src-tauri/Cargo.toml --locked`                                        | Passed: 87 tests; 1 explicitly ignored manual hardware probe; binary/doc targets passed                              |
+| `cargo test --manifest-path src-tauri/Cargo.toml native_wpd_enumeration -- --ignored --nocapture` | Separately executed and passed: one device while connected; zero after physical disconnection; no identifier printed |
+| `node scripts/check-schema.mjs`                                                                   | Passed: in-memory migrations 1–4, constraints/FKs/transactional rollback                                             |
 
-An initial default debug build hit Windows paging-file error 1455 while mapping dependency metadata. The successful Rust checks used `CARGO_BUILD_JOBS=1`, `CARGO_PROFILE_DEV_DEBUG=0`, `CARGO_INCREMENTAL=0`, and the isolated `.cache/native-e2e/target` directory. No OS security/pagefile setting was changed. Vitest is limited to two workers. Unix-only filesystem symlink tests were not executed on Windows; Windows hard-link/path checks and the portable hostile-ZIP symlink test passed.
+The successful final Rust test execution took 6.83 seconds; frontend tests took 13.10 seconds. These are suite timings, not device speed or frame-rate claims. `pnpm.cmd format:check` and `cargo fmt --manifest-path src-tauri/Cargo.toml -- --check` passed after the final documentation pass.
 
-## Native end-to-end evidence
+Rust checks used `CARGO_BUILD_JOBS=1`, `CARGO_PROFILE_DEV_DEBUG=0`, `CARGO_INCREMENTAL=0`, and `.cache/viewer-e2e/target`, preserving the established workaround for Windows paging-file error 1455. No OS/pagefile/security setting was changed. The windows crate was already cached and resolved offline. Cargo.lock supports `--locked`; no frontend runtime dependency was added.
 
-A real development Tauri binary was built and launched with identifier `app.chatvault.desktop.viewer.smoke04`, title **ChatVault Viewer Smoke Test**, separate app-local SQLite/vault, and the loopback Vite frontend. The config/build artifacts live under `.cache/viewer-e2e/`. The main test window was closed after verification; the disposable test data is retained.
+An intermediate regression run exposed a completion race: the channel delivered a result just before releasing the native-worker busy slot, so an immediate next access could return busy. The worker now releases its slot before delivering completion; the final complete suite passed. An initial native scan also revealed that a WPD interface path is not necessarily a PnP instance ID. CfgMgr32 interface-to-instance resolution was added and the real USB workflow then passed.
 
-Using the computer-use skill and the native Windows picker:
+## Real hardware and native evidence
 
-1. Fresh profile: schema 3, zero archives/snapshots, 0 B.
-2. Imported `SyntheticAndroid.txt`; confirmed day/month/year after the ambiguity guard. Five records, two participants and one missing reference were saved.
-3. Clicked **Read imported chat**. The reader displayed genuine SQLite records, source-order date separator, sender labels, system/deleted records, Sinhala/emoji/multiline text, literal HTML-looking text and a missing attachment notice.
-4. Searched **ආයුබෝවන්** within the conversation. One real result appeared with a safe highlight. Selecting it opened the exact message ID/context.
-5. Fixed an observed outer-workspace scroll issue: search jumps now scroll only the timeline; search sits beside the timeline on wide windows. Native global-result navigation subsequently retained the workspace position.
-6. Imported `SyntheticViewerMedia.zip`: four records, two participants, three extracted media references, zero missing references.
-7. Loaded the 160×100 checker PNG through the private protocol. Actual pixels rendered inline and in the lightbox; zoom changed to 125%.
-8. Loaded the synthetic PCM WAV. WebView showed a four-second duration; **play** changed to **pause**, and the time scrubber subsequently reached **4** with the completed 0:04 / 0:04 display.
-9. Loaded the deliberately truncated MP4. The UI displayed an unsupported/damaged-codec error with Retry, without executing or converting the file.
-10. Global sender search for **Fixture Bob** returned four results across both archives. Selecting the TXT result switched from the media conversation to its correct stored message/context, retaining the search results and workspace position.
-11. Closed and relaunched the native executable. Dashboard still showed two archives, zero snapshots, schema 3 and 127.2 KB usage. Reopened the media archive from Archives: stored German text and attachment references remained readable, and a newly authorized PNG decoded again.
+The user explicitly confirmed that their own Android phone was connected, unlocked, and ready for read-only discovery. Native tests used **ChatVault USB Smoke Test**, configured in `.cache/devices-e2e/tauri.conf.json`, using the existing disposable Step 04 identifier `app.chatvault.desktop.viewer.smoke04`. The regular application profile/vault was not used. The original Step 03 smoke window was left alone. Synthetic exports were the only chat content used in repository/profile regression tests.
 
-Input coordination was required while another app was active; stale controls were refreshed before input. No unrelated app was operated. Native testing used synthetic export formats, not a supplied private WhatsApp export.
+Executed against one physical phone:
 
-Read-only verification of only this isolated profile after restart:
+1. Real `IPortableDeviceManager` enumeration returned one portable device. The native dashboard/Devices page displayed its genuine friendly name and manufacturer, not test data.
+2. The local device-interface path resolved through CfgMgr32 to USB ancestry. The page showed USB / Windows Portable Devices; no drive-path or Explorer namespace access was used by the implementation.
+3. Explicit **Check file access** succeeded using `GENERIC_READ`, storage functional objects, and folder enumeration. The UI showed File access available at last check. Missing category and OS identity remained Unavailable/Unknown; brand or MTP was not treated as Android proof.
+4. Explicit **Scan WhatsApp Storage** completed, examining **146 object metadata entries**. It found the modern ordinary WhatsApp candidate folder, with checked category paths not exposed there, and the modern WhatsApp Business candidate with accessible Databases, Images, Video, Documents, Audio and Voice Notes folders. An encrypted backup filename was detected as a boolean. No filename list, private database contents, or media bytes were read, returned, copied, or stored.
+5. Candidate not-found results were reported per checked location. The page did not claim that WhatsApp data was absent. Discovery time and examined-entry count were shown without a fake progress bar.
+6. Repeated live enumeration and explicit access/discovery remained responsive and did not create notes, archives, or snapshots from phone discovery. File permission was reset to unchecked on the next live enumeration; discovery remained a dated observation.
 
-| Evidence                                        | Actual value                                            |
-| ----------------------------------------------- | ------------------------------------------------------- |
-| Archives / conversations / messages             | 2 / 2 / 9                                               |
-| Search-index rows                               | 9                                                       |
-| Stored media                                    | 3                                                       |
-| Chat UTC timestamps                             | All 9 NULL; local/original metadata retained            |
-| Pending import jobs / temporary stages          | 0 / 0                                                   |
-| Original copies                                 | Both byte-identical to source fixtures; SHA-256 matches |
-| Extracted PNG / WAV / intentionally invalid MP4 | 398 / 64,044 / 24 bytes; stored lengths match SQLite    |
+Follow-up unplug check **passed** after the user reconfirmed the cable was physically disconnected. Initial fresh Windows observations still returned one device and successful read-only access, so no pass was claimed at that point. Subsequent independent real-WPD probes returned **zero portable devices**, including a repeat with the original enumeration code after temporary test diagnostics were removed. The already-running native app's polling cleared the phone and selected details, showed **0 detected / No device detected**, and explained that the selected device disconnected or its handle expired. Explicit Refresh also completed with zero devices. The dashboard then showed **No device connected**, four unchanged archives and zero backups. No device note or backup was saved (both SQLite counts remained zero).
 
-No network upload code, remote image loading or telemetry service was introduced. The native test used loopback HMR and local IPC/custom media delivery. Physical network disconnection and packet capture were not performed.
+No production behavior change was needed to obtain the zero-device result; the native app exercised the existing build. The exact cable-removal time and cause of the earlier Windows observation mismatch were not independently measured, so this confirms a disconnection observation rather than a physical-removal latency benchmark. During cleanup Windows displayed a phone-arrival notification and the live list returned to one device, unselected with access unchecked; the app therefore also observed a subsequent device reappearance without reusing the old selection/permission. The exact physical reconnect action was not independently timed. The isolated test window/server were closed after verification.
 
-## Performance measurements
+Explicit access/discovery after the observed device reappearance, charging-only transition, phone-lock transition, unplug during an active discovery, two simultaneous phones, other vendors/drivers, and direct comparison of findings with Explorer remain incomplete. These scenarios are covered by injected tests where applicable and remain on the physical manual checklist. They are not reported as physical passes.
 
-The Rust test creates **12,000 synthetic messages**, indexes them and reads every record through **200 cursor pages of 60**. It asserts exact traversal/counts, stable sequence and a maximum returned page of 60. This is a debug-symbol-disabled test build, not a release benchmark.
+## Native regression and data preservation
 
-| Measured operation                                  | Elapsed                                       |
-| --------------------------------------------------- | --------------------------------------------- |
-| Insert 12,000 records + FTS indexing                | 1.285 seconds                                 |
-| Read all 200 cursor pages                           | 637.2 ms total (about 3.19 ms/page)           |
-| Indexed literal substring yielding one known record | 2.91 ms                                       |
-| Four older-page transitions in jsdom                | 434.4 ms including user-event/test scheduling |
-| React message records after repeated paging         | 120 maximum                                   |
+The isolated profile started at schema 3 with two existing archives, two conversations, nine messages, three media rows, four attachments, nine FTS rows and zero backups. Migration 4 opened this profile without resetting it; the dashboard showed schema 4 and the same original counts/127.2 KB vault usage.
 
-Earlier runs under heavier concurrent build load measured 2.83 seconds insertion/indexing, 2.17 seconds for all pages and 9.92 ms for the same search. Results vary with load. No native FPS, peak-memory, huge-vault throughput or universal hardware claim is made. DOM tests bound the window and long-message text sections; media is not authorized until requested.
+Native actions executed after migration:
 
-## Migrations, commands and changed files
+- Archives listed the existing TXT and ZIP imports. The real media conversation opened and displayed the original German text and references.
+- The existing synthetic PNG decoded through a freshly authorized private protocol token and displayed actual checker pixels.
+- Scoped local search for `waveform` returned one genuine highlighted result from the saved synthetic media conversation.
+- A fresh native picker selected `SyntheticIOS.txt`; the actual preview showed two records/two participants/no media, including multiline text. Explicit import completed: two records saved.
+- A fresh native picker selected `SyntheticMedia.zip`; the actual preview showed two records/two participants/one media/zero missing references. Explicit import completed: two records/one media saved.
+- Settings remained available, displayed the unchanged vault path/schema 4, and changed the disposable profile to light appearance for restart validation. Dark/system appearance had already rendered the Devices flow.
+- A full native close, rebuild and restart with the phone connected preserved light appearance, the selected vault path, four archives and zero snapshots. WPD performed a fresh live observation, and the phone returned with file access unchecked rather than inheriting an old permission claim.
 
-Migration `src-tauri/migrations/003_chat_viewer.sql` preserves old data and explicit sequence values, assigns stable order to legacy NULL sequences, adds the cursor index, and backfills normalized FTS5 trigrams. New immutable imports index their conversation inside the existing atomic transaction; index failure rolls back records/files safely.
+Read-only SQLite verification after these two intentional synthetic imports:
 
-Added IPC: `list_conversations`, `get_conversation`, `read_messages`, `get_message_context`, `search_messages`, `list_conversation_media`, `get_media_metadata`, `authorize_media`, `revoke_media`, `open_document`. Participants are included in details; the archive summary command remains available.
+| Check                               | Actual value                                                                                                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Schema                              | 4                                                                                                                                                                  |
+| Archives / conversations / messages | 4 / 4 / 13                                                                                                                                                         |
+| Media / attachments / FTS rows      | 4 / 5 / 13                                                                                                                                                         |
+| Backup snapshots / legacy devices   | 0 / 0                                                                                                                                                              |
+| Consented device notes              | 0 (no consent was given during hardware testing)                                                                                                                   |
+| Pending imports                     | 0                                                                                                                                                                  |
+| SQLite quick_check                  | ok                                                                                                                                                                 |
+| Original pre-migration rows         | SHA-256 digests of the original row ranges matched for all eight inspected tables: devices, backups, archives, conversations, messages, media, attachments, search |
+
+Only existing synthetic profile rows were inspected for this preservation check. Phone metadata findings were not persisted. Before/after count/digest summaries are retained under `.cache/devices-e2e/`. Native audio/video controls and full reader regression remain exercised by the passing automated suites; prior native WAV completion and damaged-video feedback evidence are preserved in the historical Step 04 report rather than falsely claimed as newly rerun here.
+
+## Mock/injected coverage
+
+The 62 previous Windows Rust tests remain, with 25 additional device tests. They exercise no devices versus not-scanned, one/multiple/duplicate devices, missing/malformed/oversized metadata, unverified non-USB transport, unknown Android identity, explicit driver report, locked/access-denied, empty storage, metadata-only discovery, WhatsApp Business naming, missing candidates, denied folders, unplug during open, observed unplug/reconnect with new handles, refresh permission invalidation, restart identity limitations, invalid/stale issued handles, entry/cancel budgets, actual cooperative worker cancellation/backpressure, consented note persistence across database reopen, and migration 3→4 idempotency with legacy archive/device/message rows preserved.
+
+The 66 prior frontend tests remain, with 17 new tests. Device tests use only injected services: completed no-device observation, browser fallback, explicit selection/access/discovery, permission diagnostic, disconnect/refresh replacement, multiple devices/missing metadata, escaped malicious names, per-device consent, cancellable busy state, polling cleanup and dashboard access status without snapshot changes. Narrow IPC and diagnostic filtering are tested separately. Existing storage tests isolate device availability so a storage-only invoke mock cannot masquerade as live device data.
+
+## Files changed
 
 Created:
 
-- `src-tauri/src/storage/viewer/{mod,models,repository,search,media,protocol,commands,tests}.rs`.
-- `src/services/viewer.ts` and `src/features/viewer/{ChatViewerPage,ConversationSidebar,ConversationInfoPanel,MessageTimeline,ChatSearch,Highlight,MediaMessage,MediaLightbox}.tsx`.
-- `src/test/{viewerFixture.ts,viewer.test.tsx,viewerService.test.ts}`.
-- `scripts/generate-viewer-fixtures.mjs` and `src/test/fixtures/SyntheticViewerMedia.zip`.
+- `src-tauri/src/devices/{mod,adapter,windows,discovery,models,repository,commands,tests}.rs`
+- `src-tauri/migrations/004_device_notes.sql`
+- `src/services/devices.ts`, `src/features/devices/DeviceProvider.tsx`
+- `src/test/{deviceFixture.ts,deviceService.test.ts,devices.test.tsx}`
+- Eight generated scoped command permission TOMLs under `src-tauri/permissions/autogenerated/`
+- `docs/VALIDATION_STEP04.md` (historical report preserved)
 
-Modified: Cargo.toml features (rusqlite functions and Windows registered-app API); storage service/mod/migrations/vault and importer repository/staging/service/test integration; lib.rs/build.rs/capabilities/tauri.conf.json command/protocol/CSP registration; App routing/layout, Archives read actions, import completion action, Settings About copy, styles, two-worker test config and schema helper. Tauri-generated ACL/schema metadata updates during builds. README, ARCHITECTURE, SECURITY, ROADMAP and this report are current. No new frontend runtime package or transcoder was added.
+Modified:
 
-## Repeatable manual checks
+- `src-tauri/{Cargo.toml,Cargo.lock,build.rs,capabilities/default.json}` and generated capability schemas
+- `src-tauri/src/lib.rs`, `src-tauri/src/storage/{mod,migrations,service}.rs`
+- `src/features/devices/Devices.tsx`, `src/features/dashboard/Dashboard.tsx`, `src/features/settings/SettingsPage.tsx`
+- `src/app/App.tsx`, `src/domain/models.ts`, `src/services/{contracts,availability}.ts`, `src/styles.css`
+- `src/test/{App,storage}.test.tsx`, `scripts/check-schema.mjs`
+- `README.md`, `docs/{ARCHITECTURE,ROADMAP,SECURITY,VALIDATION}.md`
 
-Use a disposable profile/vault for fixtures. Normal development: `pnpm.cmd tauri dev`. For an isolated profile, use a unique Tauri identifier; the smoke config under `.cache/viewer-e2e/tauri.conf.json` disables beforeDevCommand and requires an already running `pnpm.cmd dev` loopback server.
+No Step 06 engine, snapshot creation, copying, ADB installer, broad fs/shell capability, phone content fixture, private identifier log, branch, commit, merge, or push was added.
 
-1. Import SyntheticAndroid.txt, choose day-first and confirm. Read the saved chat, inspect Sinhala/multiline/system/deleted/missing records and source timestamps.
-2. Search within the conversation, then globally. Try sender names, Sinhala, German, punctuation, a one-character term and no-match text. Use Continue search for bounded short-query sections, previous/next results, and repeated selection of the same target.
-3. Import SyntheticViewerMedia.zip. Load/enlarge/zoom/fit the image, play/seek/change speed on the tone, and verify invalid video feedback. Open/close details and metadata gallery; files should not prefetch.
-4. Navigate away/back, close/restart, reopen from Archives, and reload media. Counts, records, originals and hashes must remain unchanged.
-5. Exercise older/newer/newest/context pages with a large synthetic chat; the Rust benchmark is `cargo test --manifest-path src-tauri/Cargo.toml performance_12000 -- --nocapture`.
-6. In test storage only, simulate a missing file or drive. Expect a clear error and preserved records. Retest themes, keyboard controls, Settings/vault safety and browser-only fallback.
+## Manual Windows repeat procedure
 
-## Limits and unexecuted checks
+1. From the repository run `pnpm.cmd tauri dev` with Cargo on PATH. Open Devices without a phone, click Refresh, and verify a completed no-device observation rather than a fabricated phone.
+2. Connect/unlock your phone with a data USB cable. Select File Transfer/MTP and approve the phone's prompt yourself. Refresh, select the actual device, inspect available metadata, and click Check file access. A charging-only connection can be absent from WPD entirely.
+3. Click Scan WhatsApp Storage to explicitly authorize only metadata discovery. Compare candidate/category visibility with Explorer if available, without opening/copying private databases or media. Test both ordinary WhatsApp and Business only if actually installed/exposed.
+4. Unplug while idle: the next visible polling interval (15 seconds plus API duration) should remove the device. Refresh explicitly if needed. Reconnect and select again; do not use an old handle.
+5. Repeat during discovery, while locking the phone, and while changing USB mode to charging. Expect denied/disconnected/unavailable/incomplete, not a no-data claim. Cancel and retry after any pending Windows call returns. A vendor call may outlast the cooperative deadline; backpressure prevents additional workers.
+6. If possible connect two phones, including one with access denied. Verify distinct issued handles, no duplicate enumeration, per-device selection and no cross-device folder findings.
+7. Close/reopen with a phone connected, then without one. Connection state must come from a fresh live scan. Check archives, search, media and theme/vault preferences across restart. Discovery must not create backups or archives.
+8. Optionally consent to Save device note. Verify only displayed fields/preference persist and the note never claims a connection or automatically matches an identically named phone after reconnect.
 
-- WebView codec support varies. Native PNG and PCM WAV playback plus invalid-video feedback were verified. A valid MP4/WebM playback matrix, every image format, hardware acceleration, full-screen video and every seek/volume control were not exhaustively tested.
-- PDF/office/plain-text files use explicit registered Windows application opening; no in-app PDF renderer. The actual registered external application launch was not invoked in this smoke test.
-- No captions/transcripts, guessed local sender ownership, message sending/editing/deletion, overlap merging, phone access, native-backup decryption or Step 05 features.
-- Media tokens expire after 30 minutes; reload an attachment after expiration. Range chunks are at most 2 MiB; non-range bodies at most 16 MiB; files at most 64 MiB; images at most 16 MiB and known dimensions at most 25 megapixels. MIME/signature checks do not guarantee decodability.
-- Short queries need explicit continuation across 2,000-record sections. Search is literal substring matching, not Boolean, fuzzy, stemming or linguistic word segmentation. Results and gallery navigation are paged. Long message bodies use readable text sections.
-- Legacy/unsupported media without archive ownership information is not authorized. Source-format/parser limitations from Step 03 remain.
-- ChatVault does not encrypt vault files, SQLite, WAL or the search index. Same-user/admin filesystem races cannot be fully isolated by these checks.
-- No private export, packaged installer, broad locale/device matrix or packet-capture audit was supplied/performed.
+## Acceptance checklist
 
-## Step 04 acceptance checklist
-
-- [x] Real imported conversations and entire saved text are accessible through bounded pages/sections.
-- [x] Correct imported order, senders, original/local dates, Unicode and multiline content are preserved.
-- [x] In-conversation/global text and sender search work; exact results navigate to saved message IDs.
-- [x] Private images render locally; zoom/fit/gallery controls and missing/damage feedback are implemented.
-- [x] Supported native media controls are implemented; WAV playback and unsupported-video behavior ran natively.
-- [x] Large chats avoid whole-history React state; 12,000-record paging/search and a 120-record DOM bound are measured/tested.
-- [x] Full restart preserves archives/messages/media; originals and hashes are unchanged.
-- [x] IDs/tokens, ownership/path/handle checks, fixed MIME, ranges and narrow CSP scope protect media access.
-- [x] Existing Step 01–03 regressions and all required automated checks pass.
-- [x] Native smoke test ran with exact evidence and remaining platform/media limitations reported.
-- [x] Documentation updated; Step 05 unstarted; no Git operations.
+- [x] Real Windows WPD enumeration and USB transport resolution executed with one phone.
+- [x] No-device, scanning, unknown identity, access, denial, disconnection and unsupported states implemented; relevant injected tests passed.
+- [x] Android identification is conservative and never inferred from brand, phone type or MTP alone.
+- [x] Explicit read-only file-access check succeeded on real hardware.
+- [x] Refresh, lifecycle cleanup, backpressure, cancellation and stale-handle invalidation implemented/tested; real idle unplug, native selection clearing, explicit no-device Refresh and dashboard status verified. Remaining reconnect/mode/lock matrix is pending.
+- [x] Actual WhatsApp/Business metadata discovery succeeded on the connected phone; restrictions and incomplete results are distinct from absent data.
+- [x] No phone content read/copy/mutation/decryption, root, debugging, telemetry, cloud or automatic backup path introduced.
+- [x] Existing archives/viewer/search/media/import/storage regression passed; migration preserves existing rows.
+- [x] Optional consented notes persist without hardware identifiers or false live state.
+- [x] Rust/frontend/build/lint/schema checks executed and passed; real versus mock evidence disclosed.
+- [x] Native application exercised with real device and synthetic local content.
+- [ ] Complete the remaining physical hardware scenario matrix and broader vendor/driver/installer validation before claiming universal compatibility.

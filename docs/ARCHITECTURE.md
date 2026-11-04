@@ -1,4 +1,28 @@
-# Architecture — Step 04
+# Architecture — Step 05
+
+## Windows USB discovery
+
+`src-tauri/src/devices/` separates `DeviceAdapter` / `Content` (injectable read-only boundaries), `WindowsPortableDeviceAdapter`, discovery rules/budgets, live `DeviceState`, typed models/commands, and `repository` for consented notes. Frontend `services/devices.ts`, `DeviceProvider`, Devices page, and dashboard consume issued UUID handles; React never receives PnP identifiers or WPD object IDs. Production creates the real adapter only; deterministic synthetic adapters exist under Rust/React tests only.
+
+`IPortableDeviceManager::{RefreshDeviceList,GetDevices,GetDeviceFriendlyName,GetDeviceManufacturer}` enumerate locally installed portable interfaces and available metadata. `CM_Locate_DevNodeW`, `CM_Get_Device_Interface_PropertyW(DEVPKEY_Device_InstanceId)`, `CM_Get_Device_IDW`, and `CM_Get_Parent` establish local USB ancestry without parsing an interface path as an instance ID. Unverified transports remain visible but cannot be opened. No remote WPD device is opened. A device-interface symbolic link must first resolve to its PnP instance; this was exercised with real hardware.
+
+Each operation creates a worker with `CoInitializeEx(COINIT_MULTITHREADED)`. All COM creation/use/release and `CoUninitialize` stay on that thread; interfaces never cross threads or enter global cache. `CoTaskMemFree` releases every returned WPD string, including partial failure batches. `IPortableDeviceFTM` is opened with `WPD_CLIENT_DESIRED_ACCESS=GENERIC_READ` from the first attempt. `IPortableDeviceContent`, `IPortableDeviceProperties::GetValues`, explicit key collections, `EnumObjects`, and `IEnumPortableDeviceObjectIDs::Next` implement metadata-only access. Client property setters configure the in-memory client-information object only; no device property setter is used. No resources/stream/transfer/write/copy/move/delete/send-command APIs are called.
+
+Only device type/protocol/transport, object name/original filename/content type, and functional storage category are queried. No serial, IMEI, account, battery, capacity, Android version, or private database properties are requested. A `Phone` WPD type is not Android evidence. Only an exact explicit Android protocol report establishes `driver_reported_android`; otherwise identity stays unknown. A successful storage-root enumeration probe establishes access at that moment, not access to every file or a permanent authorization.
+
+Discovery walks only exact case-insensitive modern/legacy WhatsApp and Business candidate segments, then fixed media/database category names. It does not recursively walk arbitrary child objects or enumerate private app storage. An operation-local bounded directory cache reuses shared prefixes. Media-category access uses one `Next` probe without file-property reads; database directories return only an encrypted-filename presence boolean, never filenames or contents. Results distinguish found/accessible/not-found/access-denied/disconnected/unsupported/incomplete/cancelled. Duplicate matching folder names are treated as incomplete rather than arbitrarily choosing one.
+
+Limits: 32 devices, 8 storage roots, 256 children/directory, 2,500 examined objects, depth limited by the fixed paths (at most 8 including the leaf probe), and 25 seconds between calls. Metadata display strings are control/bidi-filtered and bounded to 160 characters; internal IDs copied from COM are bounded to 4,096 UTF-16 units. Scan/cancel state is independent from StorageState so slow WPD never holds the SQLite/import lock. Exactly one native worker is allowed. The async command waits on a bounded channel off the event thread and reports timeout after 28 seconds plus scheduling overhead. Cooperative cancellation and a pre-commit budget check discard late work. Synchronous driver calls cannot safely be force-terminated: a hung call retains the single worker slot until return; further requests fail busy. No background retry storm is created.
+
+The shared provider polls enumeration every 15 seconds while visible, suppresses overlaps during access/discovery, cancels on hide/unmount, discards stale frontend generations, and clears stale connection claims. Backend live observations expire after 30 seconds. Every explicit access re-enumerates before using its issued handle. A completed refresh resets permission to unchecked; dated findings are historical observations. Disconnected devices are removed, and reconnect/restart generates new handles. No persisted note creates a live connection.
+
+### Device commands and SQLite
+
+The existing 20 commands remain; eight narrow main-window permissions add `list_connected_devices`, `refresh_connected_devices`, `get_device_details`, `check_device_file_access`, `discover_whatsapp_storage`, `cancel_device_operation`, `get_known_devices`, and `remember_device`. Expensive commands are asynchronous; no arbitrary path, executable, SQL, or WPD write endpoint exists. The remember command requires the current issued handle and a boolean preference; the UI requires explicit consent.
+
+Migration 4 adds a separate STRICT `portable_device_notes` table (random local ID, display name, optional category, last detected UTC milliseconds, preferred flag). The initial `devices` table enforces Android-only platform and already participates in backup foreign keys, so it is preserved rather than rebuilt to adopt unknown portable devices. Notes are bounded to 100 and are separate from live observations. No raw/hashed hardware recognition identifier is saved, and no automatic matching by friendly name is attempted. Preferences are historical notes only after reconnect/restart. Step 06 can reuse adapter boundaries and require a fresh explicit selection/authorization; copying, resources, backup jobs, snapshots and decryption are not implemented here. ADB is intentionally omitted.
+
+Official API semantics: [enumerating WPD devices](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/enumerating-devices), [read-only device Open](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-iportabledevice-open), [object enumeration](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/enumerating-content), [device properties](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/device-properties), [CfgMgr32 interface-to-instance example](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/porting-from-setupapi-to-cfgmgr32), and [WPD cancellation semantics](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-iportabledevice-cancel). The app uses cooperative cancellation between calls rather than sharing a COM interface across threads to force a cancel.
 
 ## Read-only chat reader
 
@@ -87,7 +111,7 @@ Sessions expire after 30 minutes and are checked/released on subsequent operatio
 
 ## Preserved Step 02 storage baseline
 
-The sections below describe the initial schema/storage foundation. Migration 2 and the import commands above extend that baseline; schema version 3 is current.
+The sections below describe the initial schema/storage foundation. Migration 2 and the import commands above extend that baseline; schema version 4 is current.
 
 ## Responsibilities
 
@@ -131,7 +155,7 @@ Frontend StorageProvider prevents conflicting requests, disables controls while 
 
 `<app_local_data_dir>/database/chatvault.sqlite3` is independent of the current vault. Windows normally resolves the base under `%LOCALAPPDATA%\app.chatvault.desktop`. The application does not store databases in the repository or `public/`.
 
-`PRAGMA application_id = 0x43565431` identifies ChatVault. `PRAGMA user_version` and `schema_migrations(version, applied_at)` both track the current version 3. All pending embedded migrations, ledger entries, and version/identity changes share one immediate transaction. Failure drops/rolls back that transaction. Reapplying a completed version preserves rows. Unknown, inconsistent, and newer schemas fail safely. A nonempty unrecognized SQLite database is never adopted. Orphan WAL/SHM/journal files without the main database cause an error rather than replacement creation.
+`PRAGMA application_id = 0x43565431` identifies ChatVault. `PRAGMA user_version` and `schema_migrations(version, applied_at)` both track the current version 4. All pending embedded migrations, ledger entries, and version/identity changes share one immediate transaction. Failure drops/rolls back that transaction. Reapplying a completed version preserves rows. Unknown, inconsistent, and newer schemas fail safely. A nonempty unrecognized SQLite database is never adopted. Orphan WAL/SHM/journal files without the main database cause an error rather than replacement creation.
 
 Application creation/import timestamps are nonnegative UTC Unix epoch **milliseconds** in INTEGER columns. SQLite supplies initial timestamps with `unixepoch('subsec')`. Imported chat timestamps retain their original string and nullable local ISO value with timezone uncertainty; their UTC INTEGER timestamp remains NULL.
 
@@ -148,7 +172,7 @@ Application creation/import timestamps are nonnegative UTC Unix epoch **millisec
 
 Strict tables enforce storage types. Foreign key and chronological indexes cover device snapshots, archive creation order, conversations per archive, messages per conversation/time/ID, and attachments per message. SQL path checks reject traversal markers, backslashes, colons, and paths outside the relevant managed prefix. Future content writes must additionally validate canonical paths in Rust; schema checks alone are not file-access authorization.
 
-Only the confirmed import service writes archives, conversations, messages, media, and attachments. Device and backup creation endpoints remain future work. The table above describes migration 1; migration 2's additions are detailed earlier.
+Only the confirmed import service writes archives, conversations, messages, media, and attachments. Creation of original Android device/backup records remains future work; Step 05 saves separate consented portable-device notes. The table above describes migration 1; migration 2's additions are detailed earlier.
 
 ## Vault protocol
 
