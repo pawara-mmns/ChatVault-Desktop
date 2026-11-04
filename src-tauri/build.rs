@@ -29,7 +29,23 @@ fn main() {
             "cancel_device_operation",
             "get_known_devices",
             "remember_device",
+            "prepare_backup",
+            "get_backup_plan_files",
+            "start_backup",
+            "get_backup_progress",
+            "cancel_backup",
+            "list_backup_snapshots",
+            "get_backup_files",
+            "reverify_backup",
+            "cleanup_backup_staging",
+            "open_backup_location",
         ]),
     ))
     .expect("failed to build Tauri application permissions");
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        println!(
+            "cargo:rustc-link-search=native={}",
+            std::env::var("OUT_DIR").unwrap()
+        );
+    }
 }
