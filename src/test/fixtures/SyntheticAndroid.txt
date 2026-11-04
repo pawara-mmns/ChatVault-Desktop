@@ -1,0 +1,6 @@
+04/05/2026, 09:00 - Messages and calls are end-to-end encrypted
+04/05/2026, 09:01 - Fixture Alice: Synthetic import check 👋
+ආයුබෝවන් — synthetic Sinhala continuation
+04/05/2026, 09:02 - Fixture Bob: <img src=x onerror=alert(1)>
+04/05/2026, 09:03 - Fixture Alice: <Media omitted>
+04/05/2026, 09:04 - Fixture Bob: This message was deleted
