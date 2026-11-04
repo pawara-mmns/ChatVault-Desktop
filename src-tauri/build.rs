@@ -11,6 +11,16 @@ fn main() {
             "cancel_import",
             "list_archives",
             "get_archive_summary",
+            "list_conversations",
+            "get_conversation",
+            "read_messages",
+            "get_message_context",
+            "search_messages",
+            "list_conversation_media",
+            "get_media_metadata",
+            "authorize_media",
+            "revoke_media",
+            "open_document",
         ]),
     ))
     .expect("failed to build Tauri application permissions");

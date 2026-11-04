@@ -17,9 +17,13 @@ The desktop shell, five routes, responsive sidebar, keyboard focus behavior, lig
 
 Current execution results and native smoke-test evidence are recorded in VALIDATION.md. Supported formats and limits are in README.md. App-provided encryption is not implemented.
 
-## Step 04 — not started
+## Step 04 — Local Chat Viewer, Media Viewer & Search
 
-The full conversation/message bubble viewer, media viewer, advanced message search, conversation navigation, and richer browsing remain for Step 04. This importer exposes only limited preview excerpts before save and archive metadata/diagnostics afterward. It does not implement the viewer in advance.
+The read-only desktop reader opens actual imported conversations from Archives or import completion. It includes genuine last-message previews, sender labels, dates, multiline Unicode, a bounded 120-record timeline with cursor pages and search context, local literal message/sender search, safe highlights, collapsible participant/source/media information, an image lightbox, WebView audio/video controls, missing/unsupported feedback and explicit registered document opening. Migration 3 preserves old rows/order and backfills an NFC/lowercase FTS5 trigram index; new imports update it in their existing atomic transaction. Media uses expiring ID-authorized tokens and a narrow range-aware custom protocol. Exact tests, measurements and native evidence are in VALIDATION.md.
+
+## Step 05 — not started
+
+No Step 05 functionality is included. Sending/editing/deleting messages, guessed account ownership, cloud services and automatic external links are not introduced. Viewer limits and platform-dependent playback remain documented rather than presented as universal codec support.
 
 ## Later boundaries
 

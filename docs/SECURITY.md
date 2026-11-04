@@ -1,4 +1,18 @@
-# Security and privacy — Step 03
+# Security and privacy — Step 04
+
+## Read-only viewer and media boundary
+
+Ten additional main-window reader commands return bounded conversation/message/search/media DTOs. No frontend filesystem scope, editable SQL, arbitrary path, message mutation, cloud service or automatic external link is added. Messages, filenames, snippets and sender names render as React text nodes; highlights preserve original escaped text. Account ownership is never guessed. Local chat dates keep Step 03 uncertainty. Only a conversation ID is retained in sessionStorage; message/media content is not cached there.
+
+Search uses a local NFC/lowercase FTS5 trigram index, backfilled by preserving migration 3 and maintained in the import transaction. It duplicates sensitive text inside the unencrypted database/WAL. Search phrases are literal quoted parameters; malformed FTS syntax is not executed. Short queries have an explicit bounded-scan continuation rather than silently incomplete results. The read-only viewer supplies no edit/delete endpoints and trusted_schema remains OFF.
+
+Media is requested by a persisted media ID. Rust verifies committed archive ownership, vault/archive markers, generated UUID path shape, canonical ancestors, ordinary nonlinked handles, stored size, fixed extension/signature MIME pairs and size/pixel limits. Links/junctions/reparse points/hard links, traversal, changed sizes and unsupported/active formats fail safely. File signatures are not a guarantee that a decoder supports a recording; WebView decode failures are shown. Media is never loaded from a message's external URL.
+
+The private `chatvault-media` protocol has no network listener and accepts only the main webview, GET/HEAD, and expiring random tokens. Unexpected origins are rejected; Origin CORS is exact rather than wildcard. IDs and file ownership are revalidated for each byte-range request. At most 2 MiB per range, no multipart ranges, no oversized non-range body, no-store and nosniff headers, and bounded token grants constrain access. Tokens expire after 30 minutes and components revoke unused grants. CSP permits only this exact media scheme/host; broad HOME/all-files Tauri asset scopes remain disabled. Documents cannot be served as executable application content.
+
+PDF/office/plain-text documents open only on an explicit Open document action. Rust revalidates the file then uses Windows' registered application with a literal open verb, no arbitrary command string and no arguments. HTML/SVG/scripts/executables are not authorized as application documents. In-app PDF preview and media transcoding are not provided. A registered external viewer has its own behavior and access policy; it is outside ChatVault's renderer sandbox.
+
+Images, recordings and originals remain unencrypted local files. The application cannot defend against an administrator or a malicious same-user process racing filesystem changes; ancestor/handle checks are re-run and detectable changes are rejected. No chat/media bytes, tokens or contact details are logged. No request uploads data to a service.
 
 ## Import trust boundary
 
@@ -10,7 +24,7 @@ Staging and all extracted files remain inside the configured local vault. Stages
 
 A durable import journal precedes final directory creation. SQLite commits every related row atomically. Failure/recovery cleanup is restricted to the new operation's validated ownership/UUID and refuses to delete anything referenced by an existing archive. Invalid ownership, links, permissions, or recovery state preserve files for inspection. Cleanup may leave owned artifacts when safety cannot be established; it never guesses ownership or resets the database. There is no archive deletion UI/IPC.
 
-Chat timestamps remain timezone-unknown; ambiguous date order requires user selection. UTC conversion is not invented. The original bytes, original timestamp strings, local normalized values, chosen date order, hashes, media names, missing references, and diagnostics are retained. The full viewer is not implemented. Stored media types are extension hints and no media decoder/browser is invoked by importing.
+Chat timestamps remain timezone-unknown; ambiguous date order requires user selection. UTC conversion is not invented. The original bytes, original timestamp strings, local normalized values, chosen date order, hashes, media names, missing references, and diagnostics are retained. The read-only viewer preserves this metadata. Stored media types are extension hints and no media decoder/browser is invoked by importing.
 
 **Imports, SQLite, originals, extracted media, and temporary staging are not encrypted by ChatVault.** Use a trusted local vault and consider OS disk encryption/access control. Export files contain sensitive plaintext; no content or hash is uploaded to a service. The app does not provide WhatsApp native-backup decryption, account access, scraping, or phone discovery.
 
@@ -18,11 +32,11 @@ Chat timestamps remain timezone-unknown; ambiguous date order requires user sele
 
 SQLite and the default vault live under Tauri's application-local data directory, normally `%LOCALAPPDATA%\app.chatvault.desktop` on Windows. The database is always `<app-local-data>/database/chatvault.sqlite3`; the vault root is a separate persisted setting. Browser localStorage holds only the existing appearance key. Application-local storage contains migration/configuration metadata and an initially empty relational content schema.
 
-There is no cloud database, authentication server, analytics, telemetry, external API request, updater, phone adapter, or WhatsApp file modification. All application file processing remains in Rust. Bundled assets and IPC work without an internet service; development installation/build tools can require downloads. Only explicitly chosen exports are imported. Backup creation, phone discovery, and a full conversation viewer are not enabled.
+There is no cloud database, authentication server, analytics, telemetry, external API request, updater, phone adapter, or WhatsApp file modification. All application file processing remains in Rust. Bundled assets and IPC work without an internet service; development installation/build tools can require downloads. Only explicitly chosen exports are imported. Backup creation and phone discovery are not enabled.
 
 ## Least privilege
 
-The main local window receives the four health/storage permissions plus `allow-select-import-file`, `allow-analyze-import`, `allow-confirm-import`, `allow-cancel-import`, `allow-list-archives`, and `allow-get-archive-summary`. Application commands are registered with build-time ACL generation. The dialog plugin is used from Rust; frontend generic dialog permissions are not granted. No generic filesystem or SQL command is registered, and no arbitrary SQL/path endpoint exists. A picker choice is consumed directly by Rust, not returned as an editable arbitrary path to frontend code.
+The main local window receives the ten reader permissions documented above, the four health/storage permissions plus `allow-select-import-file`, `allow-analyze-import`, `allow-confirm-import`, `allow-cancel-import`, `allow-list-archives`, and `allow-get-archive-summary`. Application commands are registered with build-time ACL generation. The dialog plugin is used from Rust; frontend generic dialog permissions are not granted. No generic filesystem or SQL command is registered, and no arbitrary SQL/path endpoint exists. A picker choice is consumed directly by Rust, not returned as an editable arbitrary path to frontend code.
 
 The app requests no elevation, runs no shell/subprocess for storage, and uses a current-user installer. CSP remains restricted to bundled assets and IPC (plus loopback HMR in development). The frontend cannot use a storage operation successfully in a normal browser and clearly reports the missing native runtime.
 

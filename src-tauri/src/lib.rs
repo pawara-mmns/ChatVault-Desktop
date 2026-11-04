@@ -21,7 +21,7 @@ fn health_check() -> BackendHealth {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    storage::viewer::protocol::register(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let local = app.path().app_local_data_dir().map_err(|_| {
@@ -48,7 +48,17 @@ pub fn run() {
             storage::imports::commands::confirm_import,
             storage::imports::commands::cancel_import,
             storage::imports::commands::list_archives,
-            storage::imports::commands::get_archive_summary
+            storage::imports::commands::get_archive_summary,
+            storage::viewer::commands::list_conversations,
+            storage::viewer::commands::get_conversation,
+            storage::viewer::commands::read_messages,
+            storage::viewer::commands::get_message_context,
+            storage::viewer::commands::search_messages,
+            storage::viewer::commands::list_conversation_media,
+            storage::viewer::commands::get_media_metadata,
+            storage::viewer::commands::authorize_media,
+            storage::viewer::commands::revoke_media,
+            storage::viewer::commands::open_document
         ])
         .run(tauri::generate_context!())
         .expect("failed to start ChatVault Desktop");

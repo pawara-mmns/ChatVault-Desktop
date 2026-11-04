@@ -68,7 +68,7 @@ impl StorageService {
         }
         Ok(())
     }
-    pub(super) fn select_source(&mut self, source: &Path) -> Result<SelectedImport> {
+    pub(crate) fn select_source(&mut self, source: &Path) -> Result<SelectedImport> {
         if self
             .import_session
             .as_ref()

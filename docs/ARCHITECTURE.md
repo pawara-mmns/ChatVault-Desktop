@@ -1,4 +1,36 @@
-# Architecture — Step 03
+# Architecture — Step 04
+
+## Read-only chat reader
+
+The reader at `/archives/read` extends Archives and import completion. React owns selection URLs, the current session's selected ID, presentation and bounded windows. Rust owns content reads, search and media access through the existing StorageState worker/mutex. No production seed/fallback messages exist. Dates use original or normalized local values without timezone invention; neutral bubbles never guess the account owner.
+
+Frontend modules under `src/features/viewer/`: ChatViewerPage coordinates routing/details/gallery; ConversationSidebar filters/pages real conversations; MessageTimeline and MessageBubble render ordered pages, sender/system/deleted records and date separators; ChatSearch navigates scoped/global result pages; Highlight maps normalized grapheme matches onto original escaped text; ConversationInfoPanel loads participants/source/media metadata; MediaMessage/AudioPlayer load requested files; MediaLightbox uses a native modal dialog with zoom/fit/page-local navigation. `src/services/viewer.ts` is the typed IPC boundary.
+
+### Pagination and large records
+
+Migration 3 preserves imported sequence values and assigns legacy unsequenced records stable rowid order after existing sequences. An indexed cursor is an existing message ID verified against its conversation. Latest/older/newer reads return at most 60 records. Context returns at most 25 preceding records, the exact anchor and 25 following records. Messages are never ordered using guessed dates.
+
+React requests 50 records, retains at most 120 and trims the opposite end when paging. It preserves the first visible retained record's position, jumps to newest, or focuses an exact search target. No entire chat/media array is loaded. Long bodies use 4,096-unit text sections with surrogate-boundary handling; all saved text stays readable through section controls. Highlights use bounded React text/mark nodes. See VALIDATION.md for measured 12,000-record results; no unmeasured FPS claim is made.
+
+### Search index and migration 3
+
+`003_chat_viewer.sql` backfills a full-content FTS5 trigram index of NFC/lowercase message text and sender. An innocuous deterministic Rust scalar is registered before migrations. The index is sensitive and unencrypted. Immutable new imports explicitly update it inside the same transaction as all message/attachment rows. An index failure rolls back the import; no unsafe virtual-table triggers or trusted_schema relaxation are used.
+
+Queries of at least three Unicode characters become quoted literal phrase parameters, with embedded quotes escaped. FTS operators and SQL are never accepted from the UI. Trigrams support substrings and retain combining marks. Shorter queries use the same normalization with at most 2,000 candidate records and 50 matches per request. A continuation is exposed even for a zero-match scanned section, so incomplete scans are not mislabeled exhaustive. Queries are 1–200 characters. Results identify conversation/message IDs, contain original snippets and navigate through exact context lookup. See [SQLite's trigram documentation](https://www.sqlite.org/fts5.html#the_trigram_tokenizer) for the short-query boundary.
+
+### Typed reader commands
+
+Ten new main-window commands are added to the existing ten: `list_conversations`, `get_conversation`, `read_messages`, `get_message_context`, `search_messages`, `list_conversation_media`, `get_media_metadata`, `authorize_media`, `revoke_media`, `open_document`. They accept bounded filters/cursors/record IDs and return typed DTOs. Conversation details include participants; the existing archive summary command is reused. There is no generic SQL/path reader.
+
+### Private media service
+
+`storage/viewer/{models,repository,search,media,protocol,commands}.rs` resolve media ownership in SQLite. A committed archive/conversation, matching vault/archive owner markers, and exact `archives/<archive UUID>/media/<generated UUID>.<extension>` path are required. Directory ancestors are canonicalized/revalidated; file opens reject hard links/reparse points and changed sizes. Fixed extension/signature pairs select MIME. Images are capped at 16 MiB and known dimensions at 25 megapixels; JPEG dimensions require a bounded header scan. The existing 64 MiB entry limit bounds playable files.
+
+Authorization returns a random, revocable in-memory token (30-minute lifetime, 128-grant bound), never a path. `chatvault-media` is an asynchronous Tauri custom protocol with no TCP listener. It accepts main-webview GET/HEAD only, rejects unexpected origins/query/path syntax, revalidates ownership for every request and reads the validated handle. Single byte ranges return exact 206 responses in at most 2 MiB chunks; invalid/multiple ranges return 416. Non-range reads are capped at 16 MiB. Responses include fixed MIME, nosniff, no-store and exact allowed-Origin CORS. CSP adds only the private scheme/host to image/media sources; no broad Tauri asset scope exists. The [asynchronous Tauri protocol API](https://docs.rs/tauri/latest/tauri/struct.Builder.html#method.register_asynchronous_uri_scheme_protocol) keeps file reads off the event thread.
+
+PNG/JPEG/WebP/GIF use the WebView decoder. WAV/MP3/Ogg/Opus/AAC/M4A and MP4/WebM use native controls with codec/damage feedback and no transcoder. Documents do not become application HTML: supported PDF/office/text files open only through an explicit, revalidated Windows ShellExecuteW action with a literal verb and no command arguments. In-app PDF preview is deferred. Original imports remain unchanged.
+
+## Preserved Step 03 importer
 
 ## Chat export import architecture
 
@@ -27,7 +59,7 @@ The importer extends the existing Rust StorageService and managed SQLite connect
 - `list_archives(query, offset, limit)` → parameterized literal substring filtering of title/original filename, total count, and up to 100 metadata rows per page.
 - `get_archive_summary(id)` → metadata and diagnostics only. It does not expose a full conversation viewer.
 
-The existing four health/storage commands remain. The main-window capability grants only these ten commands. Archive counts and usage refresh through StorageProvider after confirmation; the archive hooks reload with the real count or route mount. Source/analysis errors are visible, cancellation has no success claim, and a frontend request guard prevents conflicting operations. Leaving Import Chat cancels any outstanding preview. A save already explicitly confirmed can finish; the UI refreshes authoritative storage state even if its response fails.
+The existing four health/storage commands remain. These ten baseline commands remain; Step 04 adds the ten reader commands above. Archive counts and usage refresh through StorageProvider after confirmation; the archive hooks reload with the real count or route mount. Source/analysis errors are visible, cancellation has no success claim, and a frontend request guard prevents conflicting operations. Leaving Import Chat cancels any outstanding preview. A save already explicitly confirmed can finish; the UI refreshes authoritative storage state even if its response fails.
 
 ### Parser representation
 
@@ -55,7 +87,7 @@ Sessions expire after 30 minutes and are checked/released on subsequent operatio
 
 ## Preserved Step 02 storage baseline
 
-The sections below describe the initial schema/storage foundation. Migration 2 and the import commands above extend that baseline; schema version 2 is current.
+The sections below describe the initial schema/storage foundation. Migration 2 and the import commands above extend that baseline; schema version 3 is current.
 
 ## Responsibilities
 
@@ -99,7 +131,7 @@ Frontend StorageProvider prevents conflicting requests, disables controls while 
 
 `<app_local_data_dir>/database/chatvault.sqlite3` is independent of the current vault. Windows normally resolves the base under `%LOCALAPPDATA%\app.chatvault.desktop`. The application does not store databases in the repository or `public/`.
 
-`PRAGMA application_id = 0x43565431` identifies ChatVault. `PRAGMA user_version` and `schema_migrations(version, applied_at)` both track the current version 2. All pending embedded migrations, ledger entries, and version/identity changes share one immediate transaction. Failure drops/rolls back that transaction. Reapplying a completed version preserves rows. Unknown, inconsistent, and newer schemas fail safely. A nonempty unrecognized SQLite database is never adopted. Orphan WAL/SHM/journal files without the main database cause an error rather than replacement creation.
+`PRAGMA application_id = 0x43565431` identifies ChatVault. `PRAGMA user_version` and `schema_migrations(version, applied_at)` both track the current version 3. All pending embedded migrations, ledger entries, and version/identity changes share one immediate transaction. Failure drops/rolls back that transaction. Reapplying a completed version preserves rows. Unknown, inconsistent, and newer schemas fail safely. A nonempty unrecognized SQLite database is never adopted. Orphan WAL/SHM/journal files without the main database cause an error rather than replacement creation.
 
 Application creation/import timestamps are nonnegative UTC Unix epoch **milliseconds** in INTEGER columns. SQLite supplies initial timestamps with `unixepoch('subsec')`. Imported chat timestamps retain their original string and nullable local ISO value with timezone uncertainty; their UTC INTEGER timestamp remains NULL.
 
@@ -139,4 +171,4 @@ The worker scans only the current validated vault, summing regular file lengths 
 | `initialize_vault`       | None      | Retry initialization/validate or repair the configured vault; same overview                               |
 | `choose_vault_directory` | None      | Rust native folder picker followed by validated empty-vault switch; overview or null on cancel            |
 
-Errors serialize as `{ code, message }` with safe static messages. Counts/path/settings/statistics are returned together rather than duplicating multiple IPC reads across components. Generic SQL/filesystem/dialog permissions remain ungranted. These four baseline commands and the six import/library commands above are permitted for the main local window.
+Errors serialize as `{ code, message }` with safe static messages. Counts/path/settings/statistics are returned together rather than duplicating multiple IPC reads across components. Generic SQL/filesystem/dialog permissions remain ungranted. These four baseline commands, six import/library commands and ten reader commands are permitted for the main local window.

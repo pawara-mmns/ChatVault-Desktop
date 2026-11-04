@@ -185,5 +185,6 @@ pub fn persist(
     for diagnostic in &parsed.diagnostics {
         connection.execute("INSERT INTO import_diagnostics(archive_id,code,severity,description,occurrence_count,line_number) VALUES (?1,?2,?3,?4,?5,?6)",params![id,diagnostic.code,diagnostic.severity,diagnostic.description,diagnostic.occurrence_count,diagnostic.line_number]).map_err(|_|fail())?;
     }
+    crate::storage::viewer::search::index_conversation(connection, &conversation)?;
     Ok(())
 }

@@ -19,7 +19,7 @@ struct Marker {
     installation_id: String,
 }
 
-fn verify_marker(root: &Path, installation_id: &str) -> Result<()> {
+pub(super) fn verify_marker(root: &Path, installation_id: &str) -> Result<()> {
     let path = root.join(MARKER);
     let metadata = fs::symlink_metadata(&path).map_err(|_| StorageError::new("unrecognized_vault", "This folder is not an initialized vault for this installation. Existing contents have not been adopted."))?;
     if paths::is_link(&metadata) || !metadata.is_file() || metadata.len() > 4096 {

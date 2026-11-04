@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Dashboard } from '../features/dashboard/Dashboard';
 import { Archives } from '../features/archives/Archives';
+import { ChatViewerPage } from '../features/viewer/ChatViewerPage';
 import { ImportChat } from '../features/import/ImportChat';
 import { Devices } from '../features/devices/Devices';
 import { SettingsPage } from '../features/settings/SettingsPage';
@@ -49,7 +50,9 @@ export function AppShell() {
       location.pathname === '/settings'
         ? 'Settings'
         : (navigation.find((item) => item.to === location.pathname)?.label ??
-          'Overview');
+          (location.pathname.startsWith('/archives/')
+            ? 'Archives'
+            : 'Overview'));
     document.title = `${title} · ChatVault Desktop`;
     if (previousPath.current !== location.pathname) {
       main.current?.querySelector('h1')?.focus();
@@ -140,7 +143,10 @@ export function AppShell() {
               {location.pathname === '/settings'
                 ? 'Settings'
                 : (navigation.find((item) => item.to === location.pathname)
-                    ?.label ?? 'Overview')}
+                    ?.label ??
+                  (location.pathname.startsWith('/archives/')
+                    ? 'Archives'
+                    : 'Overview'))}
             </strong>
           </div>
           <span className="local-status">
@@ -149,10 +155,13 @@ export function AppShell() {
           </span>
         </header>
         <main id="main-content" tabIndex={-1} ref={main}>
-          <div className="page-content">
+          <div
+            className={`page-content ${location.pathname.startsWith('/archives/read') ? 'reader-content' : ''}`}
+          >
             <Routes>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/archives" element={<Archives />} />
+              <Route path="/archives/read" element={<ChatViewerPage />} />
               <Route path="/import" element={<ImportChat />} />
               <Route path="/devices" element={<Devices />} />
               <Route path="/settings" element={<SettingsPage />} />

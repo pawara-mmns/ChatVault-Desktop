@@ -66,6 +66,17 @@ fn owner(root: &Path, marker: &str) -> Result<Owner> {
 }
 
 /// Never remove a directory unless its identity and all ancestors/entries are validated.
+pub fn verify_archive_owner(root: &Path, id: &str, installation: &str) -> Result<()> {
+    let record = owner(root, FINAL_MARKER)?;
+    if record.version != 1 || record.id != id || record.installation != installation {
+        return Err(error(
+            "unsafe_import",
+            "Archive ownership could not be verified.",
+        ));
+    }
+    Ok(())
+}
+
 pub fn cleanup_owned(root: &Path, marker: &str, id: &str, installation: &str) -> Result<()> {
     if !root.exists() {
         return Ok(());

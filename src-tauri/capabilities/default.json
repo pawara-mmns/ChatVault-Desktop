@@ -13,6 +13,16 @@
     "allow-confirm-import",
     "allow-cancel-import",
     "allow-list-archives",
-    "allow-get-archive-summary"
+    "allow-get-archive-summary",
+    "allow-list-conversations",
+    "allow-get-conversation",
+    "allow-read-messages",
+    "allow-get-message-context",
+    "allow-search-messages",
+    "allow-list-conversation-media",
+    "allow-get-media-metadata",
+    "allow-authorize-media",
+    "allow-revoke-media",
+    "allow-open-document"
   ]
 }

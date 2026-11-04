@@ -18,6 +18,7 @@ pub struct StorageService {
     protected: Vec<PathBuf>,
     pub(super) import_session: Option<super::imports::service::Session>,
     pub(super) import_limits: super::imports::models::ImportLimits,
+    pub(super) media_grants: std::collections::HashMap<String, super::viewer::media::Grant>,
 }
 
 impl StorageService {
@@ -64,6 +65,7 @@ impl StorageService {
             protected,
             import_session: None,
             import_limits: Default::default(),
+            media_grants: Default::default(),
         };
         // Initialization failures remain visible as vault errors while the database stays usable.
         // A persisted, initialized path is NEVER recreated automatically on restart.
@@ -89,6 +91,14 @@ impl StorageService {
         let (path, identity) = self.config()?;
         vault::inspect(&path, &identity, &self.protected)?;
         Ok((path, identity))
+    }
+
+    pub(super) fn read_vault(&self) -> Result<(PathBuf, String)> {
+        let (path, identity) = self.config()?;
+        paths::validate_vault_location(&path, &self.protected)?;
+        paths::verify_ancestors(&path, false)?;
+        vault::verify_marker(&path, &identity)?;
+        Ok((paths::canonical(&path)?, identity))
     }
 
     pub fn overview(&self) -> Result<StorageOverview> {

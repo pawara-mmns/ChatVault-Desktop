@@ -66,7 +66,7 @@ export function SettingsPage() {
       >
         <div className="settings-title">
           <h2 id="about-heading">About ChatVault Desktop</h2>
-          <Badge>v0.1.0 · Step 03</Badge>
+          <Badge>v0.1.0 · Step 04</Badge>
         </div>
         <div className="about-brand">
           <img src="/brand.svg" alt="" width="48" height="48" />
