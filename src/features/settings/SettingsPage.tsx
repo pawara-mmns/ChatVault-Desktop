@@ -66,7 +66,7 @@ export function SettingsPage() {
       >
         <div className="settings-title">
           <h2 id="about-heading">About ChatVault Desktop</h2>
-          <Badge>v0.1.0 · Step 05</Badge>
+          <Badge>v0.1.0 · Step 06</Badge>
         </div>
         <div className="about-brand">
           <img src="/brand.svg" alt="" width="48" height="48" />
@@ -79,8 +79,9 @@ export function SettingsPage() {
           <ShieldCheck size={21} aria-hidden="true" />
           <p>
             No accounts, cloud services, external APIs, or analytics. This
-            version imports only exports you explicitly choose. It does not copy
-            phone files. Vault encryption is not yet implemented.
+            version imports exports and copies accessible phone files only after
+            your confirmation. Native backups remain encrypted; the local vault
+            is not yet encrypted.
           </p>
         </div>
         <p className="disclaimer">

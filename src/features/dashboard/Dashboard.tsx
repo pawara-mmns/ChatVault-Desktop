@@ -1,3 +1,4 @@
+import { BackupHistory } from '../backups/BackupHistory';
 import { Link } from 'react-router-dom';
 import {
   Archive,
@@ -157,27 +158,22 @@ export function Dashboard() {
                 : 'Not loaded'}
             </Badge>
           </div>
-          <EmptyState
-            icon={HardDrive}
-            title={
-              overview?.backupSnapshots === 0
-                ? 'Your story starts here'
-                : 'Backup history is not available yet'
-            }
-            description={
-              overview?.backupSnapshots === 0
-                ? 'Once backups are available, your snapshots will appear here. Nothing has been backed up yet.'
-                : 'Backup creation and history browsing are planned for a later step. Local database counts appear above when available.'
-            }
-          >
-            <Link
-              to="/import"
-              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+          {overview?.backupSnapshots === 0 && (
+            <EmptyState
+              icon={HardDrive}
+              title="Your story starts here"
+              description="Connect your phone to create a verified local snapshot. Incomplete jobs appear in history below."
             >
-              See how it works
-              <ArrowRight size={14} aria-hidden="true" />
-            </Link>
-          </EmptyState>
+              <Link
+                to="/backups"
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                Back up phone files
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            </EmptyState>
+          )}
+          <BackupHistory compact />
         </section>
         <section
           className="panel device-panel"
