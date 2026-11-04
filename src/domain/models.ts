@@ -1,4 +1,4 @@
-/** Domain contracts only. No database or content persistence exists in Step 01. */
+/** UI-facing domain contracts. SQL timestamps/rows are mapped at repository boundaries. */
 export type EntityId = string;
 export type ISODateTime = string;
 export interface Device {
@@ -32,17 +32,22 @@ export interface Conversation {
 export interface Message {
   id: EntityId;
   conversationId: EntityId;
-  sender: string;
+  sender: string | null;
   sentAt: ISODateTime | null;
+  originalTimestamp: string | null;
+  localTimestamp: string | null;
+  timezoneStatus: 'unknown';
+  classification: 'message' | 'system' | 'unknown' | 'deleted';
   text: string;
   attachmentIds: EntityId[];
 }
 export interface Attachment {
   id: EntityId;
   messageId: EntityId;
-  fileName: string;
+  fileName: string | null;
   mimeType: string | null;
   sizeBytes: number | null;
   /** Future scoped content reference, never an arbitrary frontend filesystem path. */
-  contentReference: string;
+  contentReference: string | null;
+  isMissing: boolean;
 }

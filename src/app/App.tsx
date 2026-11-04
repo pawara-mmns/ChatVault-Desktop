@@ -24,6 +24,7 @@ import { ImportChat } from '../features/import/ImportChat';
 import { Devices } from '../features/devices/Devices';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { Button } from '../shared/components/ui/button';
+import { StorageProvider } from '../features/storage/StorageProvider';
 const navigation = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { to: '/archives', label: 'Archives', icon: Archive },
@@ -31,6 +32,14 @@ const navigation = [
   { to: '/devices', label: 'Devices', icon: Smartphone },
 ];
 export function App() {
+  return (
+    <StorageProvider>
+      <AppShell />
+    </StorageProvider>
+  );
+}
+
+export function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const main = useRef<HTMLElement>(null);
