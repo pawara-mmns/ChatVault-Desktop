@@ -1,20 +1,33 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, it, expect } from 'vitest';
-import { App } from '../app/App';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { archiveService } from '../services/imports';
+import { AppShell } from '../app/App';
+import { StorageProvider } from '../features/storage/StorageProvider';
+import { storageFixture } from './storageFixture';
 import { ThemeProvider } from '../features/settings/ThemeProvider';
 
 function renderApp(path = '/dashboard') {
   return render(
     <ThemeProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
+      <StorageProvider service={storageFixture()}>
+        <MemoryRouter initialEntries={[path]}>
+          <AppShell />
+        </MemoryRouter>
+      </StorageProvider>
     </ThemeProvider>,
   );
 }
 describe('desktop navigation and truthful foundation states', () => {
+  beforeEach(() => {
+    vi.spyOn(archiveService, 'list').mockResolvedValue({
+      items: [],
+      total: 0,
+      offset: 0,
+      limit: 20,
+    });
+  });
   it('navigates all five routes, marks the active link, and focuses the page heading', async () => {
     const user = userEvent.setup();
     renderApp();
@@ -47,42 +60,40 @@ describe('desktop navigation and truthful foundation states', () => {
     ).toHaveAttribute('aria-expanded', 'false');
     await user.click(screen.getByRole('link', { name: 'Archives' }));
     expect(
-      screen.getByRole('heading', { name: 'No archives yet' }),
+      await screen.findByRole('heading', { name: 'No archives yet' }),
     ).toBeInTheDocument();
   });
-  it('shows zero snapshots, zero archives, unknown storage, and no connected device', () => {
+  it('shows database zeros, zero vault bytes, and no connected device', async () => {
     renderApp();
     const summary = screen.getByRole('region', { name: 'Backup summary' });
-    expect(within(summary).getAllByText('0')).toHaveLength(2);
-    expect(within(summary).getByLabelText('Not calculated')).toHaveTextContent(
-      '—',
-    );
+    expect(await within(summary).findAllByText('0')).toHaveLength(2);
+    expect(
+      within(summary).getByLabelText('Vault storage used'),
+    ).toHaveTextContent('0 B');
     expect(screen.getByText('Not connected')).toBeInTheDocument();
     expect(
       screen.getByText('Device detection is not yet available'),
     ).toBeInTheDocument();
     expect(screen.getByText('0 snapshots')).toBeInTheDocument();
   });
-  it('disables archive search and explains its unavailable state', () => {
+  it('filters archive metadata while keeping the full viewer unavailable', async () => {
     renderApp('/archives');
     expect(
       screen.getByRole('searchbox', { name: 'Search archives' }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     expect(
-      screen.getByRole('heading', { name: 'No archives yet' }),
+      await screen.findByRole('heading', { name: 'No archives yet' }),
     ).toBeInTheDocument();
   });
-  it('disables file selection and distinguishes encrypted backups from chat exports', () => {
+  it('disables native file selection in a browser and explains encrypted backups', () => {
     renderApp('/import');
     expect(
-      screen.getByRole('button', { name: 'Choose chat export' }),
+      screen.getByRole('button', { name: 'Choose WhatsApp export' }),
     ).toBeDisabled();
     expect(
       screen.getByRole('heading', { name: 'Encrypted native backups' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/No files can be selected, read, or imported/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Desktop runtime unavailable/)).toBeInTheDocument();
   });
   it('redirects an unknown route to the overview', () => {
     renderApp('/unknown');
