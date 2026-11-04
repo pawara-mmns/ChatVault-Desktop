@@ -21,6 +21,14 @@ fn main() {
             "authorize_media",
             "revoke_media",
             "open_document",
+            "list_connected_devices",
+            "refresh_connected_devices",
+            "get_device_details",
+            "check_device_file_access",
+            "discover_whatsapp_storage",
+            "cancel_device_operation",
+            "get_known_devices",
+            "remember_device",
         ]),
     ))
     .expect("failed to build Tauri application permissions");

@@ -23,6 +23,14 @@
     "allow-get-media-metadata",
     "allow-authorize-media",
     "allow-revoke-media",
-    "allow-open-document"
+    "allow-open-document",
+    "allow-list-connected-devices",
+    "allow-refresh-connected-devices",
+    "allow-get-device-details",
+    "allow-check-device-file-access",
+    "allow-discover-whatsapp-storage",
+    "allow-cancel-device-operation",
+    "allow-get-known-devices",
+    "allow-remember-device"
   ]
 }

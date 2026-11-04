@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-discover-whatsapp-storage"
+description = "Enables the discover_whatsapp_storage command without any pre-configured scope."
+commands.allow = ["discover_whatsapp_storage"]
+
+[[permission]]
+identifier = "deny-discover-whatsapp-storage"
+description = "Denies the discover_whatsapp_storage command without any pre-configured scope."
+commands.deny = ["discover_whatsapp_storage"]
