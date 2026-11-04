@@ -70,9 +70,11 @@ describe('desktop navigation and truthful foundation states', () => {
     expect(
       within(summary).getByLabelText('Vault storage used'),
     ).toHaveTextContent('0 B');
-    expect(screen.getByText('Not connected')).toBeInTheDocument();
     expect(
-      screen.getByText('Device detection is not yet available'),
+      screen.getByText('Live device state unavailable'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('USB detection requires the Windows desktop app'),
     ).toBeInTheDocument();
     expect(screen.getByText('0 snapshots')).toBeInTheDocument();
   });

@@ -1,6 +1,6 @@
 /** Explicit product capabilities. UI must not invoke unimplemented services. */
 export const availability = {
-  deviceDetection: false,
+  deviceDetection: true,
   backup: false,
   archiveSearch: true,
   chatImport: true,
