@@ -1,7 +1,18 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main local window can only call the side-effect-free backend health check.",
+  "description": "The main local window may check backend health and use validated storage operations. No SQL, generic dialog, or filesystem endpoints are granted.",
   "windows": ["main"],
-  "permissions": ["allow-health-check"]
+  "permissions": [
+    "allow-health-check",
+    "allow-get-storage-overview",
+    "allow-initialize-vault",
+    "allow-choose-vault-directory",
+    "allow-select-import-file",
+    "allow-analyze-import",
+    "allow-confirm-import",
+    "allow-cancel-import",
+    "allow-list-archives",
+    "allow-get-archive-summary"
+  ]
 }
