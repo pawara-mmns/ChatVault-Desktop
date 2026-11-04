@@ -1,13 +1,7 @@
 /** UI-facing domain contracts. SQL timestamps/rows are mapped at repository boundaries. */
 export type EntityId = string;
 export type ISODateTime = string;
-export interface Device {
-  id: EntityId;
-  displayName: string;
-  platform: 'android';
-  connection: 'usb';
-  status: 'connected' | 'disconnected' | 'unauthorized';
-}
+export type { ConnectedDevice as Device } from '../services/devices';
 export interface BackupSnapshot {
   id: EntityId;
   deviceId: EntityId;

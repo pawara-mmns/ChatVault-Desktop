@@ -23,6 +23,7 @@ import { Archives } from '../features/archives/Archives';
 import { ChatViewerPage } from '../features/viewer/ChatViewerPage';
 import { ImportChat } from '../features/import/ImportChat';
 import { Devices } from '../features/devices/Devices';
+import { DeviceProvider } from '../features/devices/DeviceProvider';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { Button } from '../shared/components/ui/button';
 import { StorageProvider } from '../features/storage/StorageProvider';
@@ -41,6 +42,13 @@ export function App() {
 }
 
 export function AppShell() {
+  return (
+    <DeviceProvider>
+      <DesktopShell />
+    </DeviceProvider>
+  );
+}
+function DesktopShell() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const main = useRef<HTMLElement>(null);
