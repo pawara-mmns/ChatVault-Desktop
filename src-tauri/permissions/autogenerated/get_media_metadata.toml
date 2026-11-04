@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-media-metadata"
+description = "Enables the get_media_metadata command without any pre-configured scope."
+commands.allow = ["get_media_metadata"]
+
+[[permission]]
+identifier = "deny-get-media-metadata"
+description = "Denies the get_media_metadata command without any pre-configured scope."
+commands.deny = ["get_media_metadata"]
