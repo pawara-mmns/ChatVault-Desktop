@@ -1,5 +1,6 @@
 use serde::Serialize;
 use tauri::Manager;
+mod devices;
 mod storage;
 
 #[derive(Serialize)]
@@ -32,6 +33,7 @@ pub fn run() {
             });
             let state = storage::StorageState::new(local);
             app.manage(state.clone());
+            app.manage(devices::DeviceState::default());
             // Bootstrap off the event thread. Commands serialize with this task through the same state.
             tauri::async_runtime::spawn_blocking(move || {
                 let _ = state.run(false, |service| service.overview());
@@ -58,8 +60,26 @@ pub fn run() {
             storage::viewer::commands::get_media_metadata,
             storage::viewer::commands::authorize_media,
             storage::viewer::commands::revoke_media,
-            storage::viewer::commands::open_document
+            storage::viewer::commands::open_document,
+            devices::commands::list_connected_devices,
+            devices::commands::refresh_connected_devices,
+            devices::commands::get_device_details,
+            devices::commands::check_device_file_access,
+            devices::commands::discover_whatsapp_storage,
+            devices::commands::cancel_device_operation,
+            devices::commands::get_known_devices,
+            devices::commands::remember_device
         ])
-        .run(tauri::generate_context!())
-        .expect("failed to start ChatVault Desktop");
+        .build(tauri::generate_context!())
+        .expect("failed to start ChatVault Desktop")
+        .run(|app, event| {
+            if matches!(
+                event,
+                tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
+            ) {
+                if let Some(devices) = app.try_state::<devices::DeviceState>() {
+                    let _ = devices.cancel();
+                }
+            }
+        });
 }

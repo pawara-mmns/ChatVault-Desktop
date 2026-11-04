@@ -13,7 +13,7 @@ use std::{
 use uuid::Uuid;
 
 pub struct StorageService {
-    pub(super) connection: Connection,
+    pub(crate) connection: Connection,
     pub(super) database_path: PathBuf,
     protected: Vec<PathBuf>,
     pub(super) import_session: Option<super::imports::service::Session>,
