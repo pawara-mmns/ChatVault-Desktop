@@ -11,7 +11,13 @@ import {
 } from 'lucide-react';
 import { Badge, EmptyState, PageHeading } from '../../shared/components/Page';
 import { buttonVariants } from '../../shared/components/ui/button';
+import { Button } from '../../shared/components/ui/button';
+import { useStorage } from '../storage/StorageProvider';
+import { StorageFeedback } from '../storage/StorageFeedback';
+import { formatBytes } from '../../services/storage';
+import { RecentArchives } from '../archives/RecentArchives';
 export function Dashboard() {
+  const { overview, loading, error, initialize, refresh } = useStorage();
   return (
     <>
       <PageHeading
@@ -54,27 +60,85 @@ export function Dashboard() {
             Backup snapshots
             <HardDrive size={18} aria-hidden="true" />
           </div>
-          <strong className="summary-value">0</strong>
-          <p>No backups created</p>
+          <strong className="summary-value">
+            {overview?.backupSnapshots ?? '—'}
+          </strong>
+          <p>
+            {overview
+              ? `${overview.backupSnapshots === 0 ? 'No backups created' : 'Saved in the local database'}`
+              : loading
+                ? 'Loading local database…'
+                : 'Database unavailable'}
+          </p>
         </article>
         <article className="summary-card">
           <div className="summary-title">
             Chat archives
             <Archive size={18} aria-hidden="true" />
           </div>
-          <strong className="summary-value">0</strong>
-          <p>No chats imported</p>
+          <strong className="summary-value">
+            {overview?.chatArchives ?? '—'}
+          </strong>
+          <p>
+            {overview
+              ? overview.chatArchives === 0
+                ? 'No chats imported'
+                : 'Saved in the local database'
+              : loading
+                ? 'Loading local database…'
+                : 'Database unavailable'}
+          </p>
         </article>
         <article className="summary-card">
           <div className="summary-title">
             Storage used
             <Database size={18} aria-hidden="true" />
           </div>
-          <strong className="summary-value" aria-label="Not calculated">
-            —
+          <strong className="summary-value" aria-label="Vault storage used">
+            {overview ? formatBytes(overview.vaultBytes) : '—'}
           </strong>
-          <p>Available after your first backup</p>
+          <p>
+            {loading
+              ? 'Checking vault files…'
+              : overview?.vaultStatus === 'ready'
+                ? 'Actual files in your local vault'
+                : 'Vault unavailable'}
+          </p>
         </article>
+      </section>
+      <section
+        className="panel dashboard-storage"
+        aria-label="Local storage status"
+        aria-busy={loading}
+      >
+        <div>
+          <strong>
+            {loading
+              ? 'Checking local storage…'
+              : overview
+                ? `Database connected · schema ${overview.schemaVersion}`
+                : 'Local storage unavailable'}
+          </strong>
+          <p className="storage-path">
+            {overview?.vaultPath ??
+              'Open the desktop app to access your local database and vault.'}
+          </p>
+          <StorageFeedback
+            error={error ?? overview?.vaultError ?? null}
+            success={null}
+          />
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={loading || error?.code === 'runtime_unavailable'}
+          onClick={() =>
+            void (overview?.vaultStatus === 'ready' ? refresh() : initialize())
+          }
+        >
+          <Database size={14} aria-hidden="true" />
+          {overview?.vaultStatus === 'ready' ? 'Refresh' : 'Retry storage'}
+        </Button>
       </section>
       <div className="dashboard-grid">
         <section
@@ -83,12 +147,24 @@ export function Dashboard() {
         >
           <div className="panel-heading">
             <h2 id="recent-heading">Recent backups</h2>
-            <Badge>0 snapshots</Badge>
+            <Badge>
+              {overview
+                ? `${overview.backupSnapshots} snapshots`
+                : 'Not loaded'}
+            </Badge>
           </div>
           <EmptyState
             icon={HardDrive}
-            title="Your story starts here"
-            description="Once backups are available, your snapshots will appear here. Nothing has been backed up yet."
+            title={
+              overview?.backupSnapshots === 0
+                ? 'Your story starts here'
+                : 'Backup history is not available yet'
+            }
+            description={
+              overview?.backupSnapshots === 0
+                ? 'Once backups are available, your snapshots will appear here. Nothing has been backed up yet.'
+                : 'Backup creation and history browsing are planned for a later step. Local database counts appear above when available.'
+            }
           >
             <Link
               to="/import"
@@ -121,6 +197,7 @@ export function Dashboard() {
           </div>
         </section>
       </div>
+      <RecentArchives />
       <div className="privacy-line">
         <ShieldCheck size={17} aria-hidden="true" />
         <p>
