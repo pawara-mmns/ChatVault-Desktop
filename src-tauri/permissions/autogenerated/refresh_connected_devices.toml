@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-refresh-connected-devices"
+description = "Enables the refresh_connected_devices command without any pre-configured scope."
+commands.allow = ["refresh_connected_devices"]
+
+[[permission]]
+identifier = "deny-refresh-connected-devices"
+description = "Denies the refresh_connected_devices command without any pre-configured scope."
+commands.deny = ["refresh_connected_devices"]

@@ -1,3 +1,4 @@
+import type * as DeviceModule from '../services/devices';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -9,6 +10,13 @@ import { freshStorage } from './storageFixture';
 import { formatBytes, nativeStorageService } from '../services/storage';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(), isTauri: vi.fn() }));
+vi.mock('../services/devices', async (original) => {
+  const actual = await original<typeof DeviceModule>();
+  return {
+    ...actual,
+    deviceService: { ...actual.deviceService, available: () => false },
+  };
+});
 function mount(path = '/settings') {
   return render(
     <ThemeProvider>

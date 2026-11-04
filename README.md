@@ -2,7 +2,23 @@
 
 A privacy-first, offline Windows application foundation for local chat archives. Tauri 2 + Rust, React + TypeScript + Vite, pnpm, Tailwind CSS, shadcn/ui button conventions, React Router, and Lucide icons.
 
-**Phase 01, Step 04: Local Chat Viewer, Media Viewer & Search** extends the real TXT/ZIP importer with a read-only conversation reader, bounded message pages, offline substring search, image lightbox, and supported local audio/video playback. Steps 01–03 navigation, themes, import, SQLite, vault settings and statistics are preserved. Backup creation and device access remain future work. There are no production demo records or simulated native operations.
+**Phase 01, Step 05: Android USB Device Detection & Read-Only Discovery** adds real Windows Portable Devices (WPD) enumeration, local USB transport verification, explicit file-access checks, bounded WhatsApp folder discovery, and consented local device notes. Steps 01–04 navigation, themes, import, SQLite, vault settings, statistics, chat viewer, search, and media remain available. Backup creation is reserved for Step 06. There are no production demo devices or simulated native successes.
+
+## Connect a phone and discover storage
+
+1. Connect your own Android phone with a data-capable USB cable and unlock it.
+2. Open the phone's USB notification, select **File Transfer / MTP**, and approve its file-access prompt if offered. USB debugging, ADB, root, and administrator privileges are unnecessary.
+3. Open **Devices**, click **Scan Devices / Refresh**, and select the actual device. Available friendly name/manufacturer come from Windows; missing metadata says Unavailable. A phone brand, phone category, or MTP protocol alone cannot confirm Android. Most WPD drivers do not report the OS, so Android identity may remain unknown even on a working Android phone.
+4. Click **Check file access**, or explicitly click **Scan WhatsApp Storage** to authorize folder/filename metadata discovery. The app opens only a confirmed local USB transport, with `GENERIC_READ`. It does not read phone file contents, copy files, decrypt backups, or modify the phone.
+5. Review actual findings. Modern `Android/media/com.whatsapp/WhatsApp` and `Android/media/com.whatsapp.w4b/WhatsApp Business`, plus legacy root-level folders, are candidates rather than guarantees. Database, image, video, document, audio, and voice-note categories are checked. An encrypted filename finding is not a readable chat archive. Missing candidate paths do not establish that WhatsApp data is absent.
+
+The app refreshes the live device list every 15 seconds while its document is visible, clears claims on a new scan, and expires backend observations after 30 seconds. File permission is rechecked explicitly and reset on each enumeration; dated discovery findings describe their own scan. Unplugging invalidates handles; reconnecting requires selecting again. A charging-only phone can be invisible to WPD, so absence is not proof that no USB cable is attached. Cameras and other portable devices may appear with unknown identity. Devices whose local USB ancestry cannot be verified are listed but never opened; network/Bluetooth transports and non-Windows discovery are unsupported.
+
+Limits: 32 devices, 8 storage roots, 256 metadata entries per enumerated directory, 2,500 total entries, fixed candidate paths (no whole-phone recursion), and 25 seconds checked between Windows calls. The response returns after at most 28 seconds plus scheduling overhead; cancellation is cooperative. A synchronous vendor COM call cannot safely be killed, so one native worker remains reserved until it returns and blocks additional native scans. No repeated worker spawning or indefinite UI wait is used. Media directories are probed without listing their file metadata; database directories are inspected for encrypted backup filenames only.
+
+**Save device note** requires checking explicit consent. Migration 4 adds `portable_device_notes` with random local record ID, display name, category, last detected time, and preference. It leaves the original Android-only `devices` table and backup references intact. No serial, PnP ID, recognition hash, object ID, or current-connection flag is persisted. Notes cannot identify a phone automatically after disconnection/restart; the same name is not proof of identity. ADB is not included, detected, downloaded, or installed. **Backup Now** remains unavailable.
+
+Architecture, official API references, hardware evidence, and remaining validation limits are in [ARCHITECTURE](docs/ARCHITECTURE.md) and [VALIDATION](docs/VALIDATION.md).
 
 ChatVault Desktop is independent and unofficial. It is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta. Original branding is used.
 
@@ -110,10 +126,10 @@ Browser previews show a clear desktop-runtime-unavailable state for storage, wit
 
 ## WhatsApp access limitations
 
-Readable chat exports are different from encrypted native backup databases. Copying encrypted native backups does not decrypt them or guarantee complete chat recovery. Export formats, media inclusion, and limits vary. Android scoped storage and USB permissions constrain accessible files. This step imports explicitly selected readable exports; it does not access a phone, create exports, modify WhatsApp files, bypass encryption, recover keys, root devices, scrape WhatsApp Web, or call private messaging APIs. Encrypted `.crypt14` and `.crypt15` backups are unsupported.
+Readable chat exports are different from encrypted native backup databases. Copying encrypted native backups does not decrypt them or guarantee complete chat recovery. Export formats, media inclusion, and limits vary. Android scoped storage and USB permissions constrain accessible files. The importer accepts explicitly selected readable exports; device discovery only examines authorized folder/filename metadata. The app does not create exports, copy phone files, modify WhatsApp files, bypass encryption, recover keys, root devices, scrape WhatsApp Web, or call private messaging APIs. Encrypted `.crypt14` and `.crypt15` backups cannot be imported as conversations.
 
 ## Validation and current limitations
 
 Build, lint, frontend tests, schema checks and Windows Rust tests are executed for each completed step. Step 04 adds preserving migration 3, cursor/context/search tests, media authorization/range/path checks, bounded frontend rendering, and measured 12,000-record tests. Exact current counts, native evidence, environment constraints and remaining limitations are in the validation report. Rust/Cargo 1.99.1 and Cargo.lock are available.
 
-See [validation and manual acceptance](docs/VALIDATION.md), [architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and [roadmap](docs/ROADMAP.md). Steps 01–04 are implemented; Step 05 is not started. No Git operations were performed.
+See [validation and manual acceptance](docs/VALIDATION.md), [architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and [roadmap](docs/ROADMAP.md). Steps 01–05 are implemented; Step 06 is not started. No Git operations were performed.

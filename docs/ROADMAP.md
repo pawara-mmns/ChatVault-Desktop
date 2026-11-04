@@ -21,10 +21,14 @@ Current execution results and native smoke-test evidence are recorded in VALIDAT
 
 The read-only desktop reader opens actual imported conversations from Archives or import completion. It includes genuine last-message previews, sender labels, dates, multiline Unicode, a bounded 120-record timeline with cursor pages and search context, local literal message/sender search, safe highlights, collapsible participant/source/media information, an image lightbox, WebView audio/video controls, missing/unsupported feedback and explicit registered document opening. Migration 3 preserves old rows/order and backfills an NFC/lowercase FTS5 trigram index; new imports update it in their existing atomic transaction. Media uses expiring ID-authorized tokens and a narrow range-aware custom protocol. Exact tests, measurements and native evidence are in VALIDATION.md.
 
-## Step 05 — not started
+## Step 05 — Android USB detection and read-only discovery
 
-No Step 05 functionality is included. Sending/editing/deleting messages, guessed account ownership, cloud services and automatic external links are not introduced. Viewer limits and platform-dependent playback remain documented rather than presented as universal codec support.
+Implemented real Windows WPD enumeration, verified local USB ancestry, friendly name/manufacturer metadata, conservative OS/category identity, explicit read-only access checks, bounded modern/legacy WhatsApp and Business folder discovery, typed status/diagnostics, cancellation/backpressure, live lifecycle-aware polling, opaque session handles, consented historical device notes, migration 4, Devices UI, and genuine dashboard status. Physical-phone and deterministic mock evidence are separated in VALIDATION.md. ADB is optional and intentionally omitted. No phone bytes are read or copied, and no backup snapshot is created.
+
+## Step 06 — not started
+
+Actual accessible-file copying, backup jobs, progress/verification, snapshot creation, and recovery are not implemented. Future work can reuse adapter/discovery boundaries but must perform fresh selection and permission checks. Device notes are not stable hardware identity. Sending/editing/deleting messages, guessed account ownership, cloud services and automatic external links remain outside this change.
 
 ## Later boundaries
 
-Device/USB adapters, accessible-file backup creation, overlap merging, explicit identical-file reimport, vault migration, encryption/key management, retention/deletion, recovery tooling, and release signing require separate work. Cloud services, authentication, analytics, WhatsApp Web automation, root access, private messaging APIs, and encryption bypass remain outside scope.
+Accessible-file backup creation, overlap merging, explicit identical-file reimport, vault migration, encryption/key management, retention/deletion, recovery tooling, and release signing require separate work. Cloud services, authentication, analytics, WhatsApp Web automation, root access, private messaging APIs, and encryption bypass remain outside scope.

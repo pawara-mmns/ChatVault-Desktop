@@ -1,12 +1,13 @@
 use super::error::{Result, StorageError};
 use rusqlite::{Connection, TransactionBehavior};
 
-pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 4;
 const APPLICATION_ID: u32 = 0x43565431; // CVT1
 pub const MIGRATIONS: &[(u32, &str)] = &[
     (1, include_str!("../../migrations/001_initial.sql")),
     (2, include_str!("../../migrations/002_chat_import.sql")),
     (3, include_str!("../../migrations/003_chat_viewer.sql")),
+    (4, include_str!("../../migrations/004_device_notes.sql")),
 ];
 
 pub fn migrate(connection: &mut Connection) -> Result<()> {

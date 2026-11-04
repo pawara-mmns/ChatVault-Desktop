@@ -2,7 +2,7 @@ pub mod commands;
 mod database;
 pub mod error;
 pub mod imports;
-mod migrations;
+pub(crate) mod migrations;
 pub mod models;
 mod paths;
 mod repository;
