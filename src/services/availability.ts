@@ -2,7 +2,7 @@
 export const availability = {
   deviceDetection: false,
   backup: false,
-  archiveSearch: false,
-  chatImport: false,
-  database: false,
+  archiveSearch: true,
+  chatImport: true,
+  database: true,
 } as const;

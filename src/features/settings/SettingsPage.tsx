@@ -1,7 +1,8 @@
-import { Monitor, Moon, Sun, ShieldCheck, Database } from 'lucide-react';
+import { Monitor, Moon, Sun, ShieldCheck } from 'lucide-react';
 import { Badge, PageHeading } from '../../shared/components/Page';
 import { useTheme, type ThemePreference } from './ThemeProvider';
 import { BackendStatus } from './BackendStatus';
+import { StorageSettings } from './StorageSettings';
 const options = [
   { value: 'light', label: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark', icon: Moon },
@@ -49,7 +50,7 @@ export function SettingsPage() {
           {preference === 'system'
             ? `Following your system’s ${resolvedTheme} theme.`
             : `${preference === 'light' ? 'Light' : 'Dark'} theme selected.`}{' '}
-          Appearance is the only saved preference in this version.
+          Your appearance preference is saved on this computer.
         </p>
         {persistenceError && (
           <p role="alert" className="error-text">
@@ -58,29 +59,14 @@ export function SettingsPage() {
           </p>
         )}
       </section>
-      <section
-        className="panel settings-section"
-        aria-labelledby="storage-heading"
-      >
-        <div className="settings-title">
-          <h2 id="storage-heading">Storage & backups</h2>
-          <Badge>Not yet available</Badge>
-        </div>
-        <div className="settings-description">
-          <Database size={20} aria-hidden="true" />
-          <p>
-            Database setup, backup locations, retention, and import preferences
-            will be introduced in future steps. SQLite is not implemented.
-          </p>
-        </div>
-      </section>
+      <StorageSettings />
       <section
         className="panel settings-section"
         aria-labelledby="about-heading"
       >
         <div className="settings-title">
           <h2 id="about-heading">About ChatVault Desktop</h2>
-          <Badge>v0.1.0 · Step 01</Badge>
+          <Badge>v0.1.0 · Step 03</Badge>
         </div>
         <div className="about-brand">
           <img src="/brand.svg" alt="" width="48" height="48" />
@@ -93,8 +79,8 @@ export function SettingsPage() {
           <ShieldCheck size={21} aria-hidden="true" />
           <p>
             No accounts, cloud services, external APIs, or analytics. This
-            foundation does not read chat files. Future file access will require
-            explicit selection and scoped permissions.
+            version imports only exports you explicitly choose. It does not
+            access your phone. Vault encryption is not yet implemented.
           </p>
         </div>
         <p className="disclaimer">

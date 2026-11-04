@@ -7,10 +7,14 @@ import {
 } from '../features/settings/ThemeProvider';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { setSystemDark } from './setup';
+import { StorageProvider } from '../features/storage/StorageProvider';
+import { storageFixture } from './storageFixture';
 function mountSettings() {
   return render(
     <ThemeProvider>
-      <SettingsPage />
+      <StorageProvider service={storageFixture()}>
+        <SettingsPage />
+      </StorageProvider>
     </ThemeProvider>,
   );
 }

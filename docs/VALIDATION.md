@@ -1,81 +1,86 @@
-# Step 01 validation record
+﻿# Step 03 validation and acceptance
 
-Final follow-up: `pnpm install --frozen-lockfile` passed after synchronizing the pinned pnpm entry. Sandboxed attempts encountered a Windows pnpm store-lock permission error; the successful final installation used approved sandbox elevation. The Tauri JSON configuration also passed validation against the installed official CLI schema, including numeric format validators. This is not Rust compilation or runtime ACL validation. The temporary Vite server was stopped after verification.
+Validated 2026-11-04 on Windows x64: Node 24.18.0, pnpm 12.14.0, Rust/Cargo 1.99.1 MSVC, WebView2. All inputs were synthetic. No private conversations entered the repository or regular application vault. No Git operations were performed.
 
-Environment: Windows x64, 2026-11-03. Node 24.18.0, pnpm 12.14.0. Commands used `pnpm.cmd` because the host's PowerShell policy blocks the `.ps1` shim. No policy changes were made.
+## Automated results
 
-## Executed commands and actual outcomes
+| Check                                                       | Actual result                                                  |
+| ----------------------------------------------------------- | -------------------------------------------------------------- |
+| `pnpm.cmd build`                                            | Passed: strict TypeScript and Vite build                       |
+| `pnpm.cmd lint`                                             | Passed: zero warnings                                          |
+| `pnpm.cmd test`                                             | Passed: 7 files, 41 tests                                      |
+| `cargo check --manifest-path src-tauri/Cargo.toml --locked` | Passed                                                         |
+| `cargo test --manifest-path src-tauri/Cargo.toml --locked`  | Passed: 49 tests, zero failures; binary/doc targets passed     |
+| `node scripts/check-schema.mjs`                             | Passed: migrations 1/2 in memory, constraints/FKs/DDL rollback |
 
-| Command                                                                        | Result                                                                                                                                         |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm create tauri-app … --template react-ts --manager pnpm --tauri-version 2` | Official scaffold created in a temporary workspace directory and copied into the initially empty project; temporary scaffold removed afterward |
-| `pnpm add …` / `pnpm add -D …`                                                 | Installed frontend, Tauri, styling, lint, formatting, and test dependencies; registry access required elevated sandbox network access          |
-| `pnpm add -D typescript@~6.0.3`                                                | Resolved the initial TypeScript 7 / TypeScript ESLint incompatibility                                                                          |
-| `pnpm install`                                                                 | Passed; dependencies up to date                                                                                                                |
-| `pnpm build`                                                                   | Passed after fixing strict test tuple typing; TypeScript check and Vite production bundle produced                                             |
-| `pnpm lint`                                                                    | Passed after fixing the initial compatibility issue and scheduling initial backend IPC outside the synchronous effect body                     |
-| `pnpm test`                                                                    | Passed: 3 test files, 14 tests                                                                                                                 |
-| `pnpm format`                                                                  | Applied formatting to frontend, JSON/config, and Markdown files                                                                                |
-| `pnpm format:check`                                                            | Passed                                                                                                                                         |
-| `pnpm peers check`                                                             | Passed, no peer dependency issues                                                                                                              |
-| `pnpm tauri icon public/brand.svg`                                             | Passed; original branding generated into native icons                                                                                          |
-| `pnpm dev`                                                                     | Started Vite successfully at `http://127.0.0.1:1420`; frontend preview only                                                                    |
-| `cargo check --manifest-path src-tauri/Cargo.toml`                             | Could not start: `cargo` is not installed/on PATH                                                                                              |
-| `pnpm tauri dev`                                                               | Failed before compilation/window launch: unable to run `cargo metadata`, program not found                                                     |
-| `pnpm tauri info`                                                              | Ran; found WebView2 156.0.4314.58 and confirmed missing rustc, Cargo, rustup, MSVC Build Tools/SDK components                                  |
+The Rust suite has 21 preserved storage tests and 28 importer tests. Coverage includes Android/iOS, 12/24-hour clocks, seconds, numeric separators/year-first dates, date ambiguity, invalid/unparsed records, groups/system/deleted/unknown senders, multiline Sinhala/Unicode, CRLF, UTF-8/UTF-16, encoding/record limits, media/missing references, unsupported content, CRC corruption, traversal/absolute/reserved/colliding names, ZIP symlinks, expansion/entry/ratio limits, and multiple conversation rejection. Real temporary files and databases verify persistence, source preservation, SHA-256 duplicates, independent overlapping exports, custom vaults, filtering, transaction rollback, migration preservation, cross-instance locks, owned recovery, cancellation, and service restart.
 
-The first unaligned TypeScript 7 build passed, but lint failed because the installed lint tooling does not support TypeScript 7. An intermediate build also caught an unchecked tuple index in the navigation test; that was fixed with a readonly tuple. Final frontend checks pass. ESLint 9 emits an installation deprecation notice; it is retained for compatibility with the installed accessibility plugin. No Rust compile or native IPC success is claimed.
+Frontend tests cover confirmation, preview, ambiguous dates, cancelled selection/preview, duplicates, invalid/save errors, HTML-looking plain text, library empty/error/filter/summary behavior, browser rejection, and narrow token IPC. Mocked IPC exists only in tests; production invokes Rust. Existing navigation/theme/storage tests remain. The Unix-only baseline symlink test was not run on Windows; Windows path/link tests and portable ZIP symlink tests passed.
 
-## Automated test coverage
+## Native end-to-end evidence
 
-- Navigation across all five screens, active state, route-change heading focus, document title, and unknown-route fallback.
-- Navigation remains accessible after sidebar collapse.
-- Zero backup/archive counts, unmeasured storage, no device connection, and archive empty state.
-- Disabled archive search and import file selection; encrypted-backup explanation remains visible.
-- Light/dark/system changes and persisted preference restoration.
-- Live system appearance changes, explicit-theme precedence, invalid saved values, storage-write failure, and keyboard radio selection.
-- Browser/native boundary, visible safe IPC error, retry recovery, and unexpected health status rejection. IPC success in tests is mocked; this does not verify Rust.
+Built and launched the real Tauri application using isolated identifier `app.chatvault.desktop.importsmoke.run16b2ede14b`, title **ChatVault Import Smoke Test**, and a separate app-local database/vault. Development assets used the existing loopback Vite server. A distinctly named copy of the same debug executable, `ChatVaultImportSmoke.exe`, avoided ambiguity with the regular application. The disposable profile and build artifacts are retained; no regular-vault test records were created.
 
-## Visual/native limitations
+Using the computer-use skill and native Windows picker:
 
-Browser automation reported **The browser access host is unavailable**. Windows fallback browser selection then reported **Computer Use app approval timed out**. No visual screenshot review, native resize check, or desktop IPC check was completed. This was an app-access timeout, not a successful native smoke test.
+1. Fresh dashboard reported schema 2, zero archives, zero snapshots, and 0 B.
+2. Selected `SyntheticAndroid.txt`: five records, two participants, zero media, one missing reference. Save was disabled until day/month/year was chosen. Sinhala, emoji, multiline content, and HTML-looking text rendered as plain text with local dates/timezone uncertainty.
+3. Explicit save completed: **SyntheticAndroid, 5 records, 0 media, 469 B**.
+4. Selected `SyntheticMedia.zip`: **2 records, 2 participants, 1 media, 0 missing references**. Explicit save completed: **557 B**.
+5. Reselected the identical ZIP: duplicate warning, cancellation/library actions, no save action. Cancelled; count remained two.
+6. Library showed both archives. Filtering `SyntheticMedia` returned one row; its summary showed provenance, counts, date policy, diagnostics, and SHA-256.
+7. Dashboard showed **2 archives, 0 backup snapshots, 1 KB**, both recent archives, and no invented connected device.
+8. Closed/relaunched the isolated executable. Both archives and recent entries remained.
 
-Rust/Cargo, the stable MSVC Rust toolchain, and the C++ build/Windows SDK prerequisites must be installed manually. See the [official prerequisites](https://v2.tauri.app/start/prerequisites/). No system installation or administrator privilege request was made by the application. The first successful Rust build must generate and review Cargo.lock; Rust dependency resolution is not yet verified.
+A separate read-only query of only the isolated database/files confirmed:
 
-## Explicit acceptance checklist
+| Evidence                                  | Value                                                          |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| Schema                                    | 2                                                              |
+| Archives / messages / media               | 2 / 7 / 1                                                      |
+| Missing attachment references             | 1                                                              |
+| Backup snapshots / pending import jobs    | 0 / 0                                                          |
+| NULL UTC / known local message timestamps | 7 / 7                                                          |
+| Stored Sinhala/emoji/multiline text       | Exact synthetic content retained                               |
+| Original copies                           | Both byte-identical to fixture sources; SHA-256 matches        |
+| Stored image                              | Existing 68-byte file at archive UUID/media/generated UUID.png |
+| Remaining temporary stages                | 0                                                              |
 
-| #   | Criterion                                       | Status and evidence                                                                                                                                                                      |
-| --- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Native Windows window opens                     | **Blocked/unverified.** Tauri configured; launch fails because Cargo is missing.                                                                                                         |
-| 2   | All five routes work                            | **Passed in component tests.** Native smoke check pending.                                                                                                                               |
-| 3   | Sidebar navigation works                        | **Passed in component tests**, including collapsed sidebar.                                                                                                                              |
-| 4   | Light/dark/system theme works and persists      | **Passed in component tests**, including system changes, reload-equivalent remount, keyboard control, and failed persistence. Native visual check pending.                               |
-| 5   | Rust backend health check works                 | **Implemented, native verification blocked.** Safe frontend error/retry tested using mocked IPC.                                                                                         |
-| 6   | No fake connection or successful backup shown   | **Passed in source and tests.** Empty counts and unavailable capability states only.                                                                                                     |
-| 7   | No cloud dependencies/network services required | **Passed in source/dependency review for runtime.** No remote runtime service or API client; packaged offline smoke check pending. Development downloads and loopback Vite are separate. |
-| 8   | Responsive at common desktop sizes              | **Implemented, visual verification pending.** Responsive grid/sidebar rules and native minimum dimensions configured.                                                                    |
-| 9   | Automated checks pass or failures reported      | **Passed with disclosed native blockers.** Build, lint, 14 tests, format, and frontend peer checks pass; Rust unavailable.                                                               |
-| 10  | No Git operations                               | **Passed.** No Git commands, branches, commits, pushes, or merges.                                                                                                                       |
+Early automation encountered minimized windows and stale native-dialog accessibility indexes; fresh screenshots and keyboard navigation completed the final workflow. An initial fixture creation shell had replaced Unicode with question marks. The fixture was corrected to actual UTF-8 before the successful saved import above. The completed distinctly named smoke-test process was closed; an earlier minimized isolated test picker may remain open.
 
-## Manual checks after prerequisite installation
+No genuine private export was supplied. Compatibility evidence is representative synthetic formats and the native workflow above, plus the Rust suite. Packaged installer, physical network disconnection, packet capture, and a broad hardware/locale matrix were not tested. Runtime source adds no upload, API, analytics or telemetry service; development downloads and loopback HMR are separate from import processing.
 
-1. Run `pnpm install --frozen-lockfile`, `cargo check --manifest-path src-tauri/Cargo.toml`, and `pnpm tauri dev`.
-2. Confirm a native **ChatVault Desktop** window opens. Open Settings → About and verify **Desktop backend connected**, the Rust version response, and Retry check.
-3. Navigate all screens with mouse and keyboard. Confirm selected navigation, visible focus, skip link, and destination heading focus. Collapse and expand the sidebar.
-4. Select light and dark appearance, restart the app, and verify persistence. Select system, change Windows appearance manually, and verify the app follows it.
-5. Review every screen at native content sizes near 1280×860, 1024×768, 900×650, and minimum 760×600, plus 125%/150% Windows display scaling. Verify scrolling, text wrapping, actions, and no horizontal clipping. Below 900 CSS pixels, expect the icon rail and named navigation links.
-6. Confirm all import/search controls remain unavailable, no file chooser opens, and no phone, chats, snapshots, or measured usage are fabricated.
-7. Build with `pnpm tauri build` and smoke-test the packaged app offline. Verify per-user installation, original icons, bundled styling, and route navigation after restart. No installer or release has been produced in this environment.
+## Repeatable manual checks
 
-## Files delivered
+Use a disposable profile/vault for synthetic data. Normal development starts with `pnpm.cmd tauri dev`. A separate test profile requires a temporary Tauri config with a unique identifier and title. The smoke config at `.cache/native-e2e/tauri.conf.json` disables beforeDevCommand and requires a running loopback frontend server.
 
-- Frontend entry/config: `index.html`, `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `.prettierignore`, `.npmrc`, `components.json`, `.gitignore`.
-- Shell/styles/shared UI: `src/main.tsx`, `src/app/App.tsx`, `src/styles.css`, `src/shared/`.
-- Feature screens and theme/backend status: `src/features/dashboard/`, `archives/`, `import/`, `devices/`, `settings/`.
-- Domain/service/platform boundaries: `src/domain/models.ts`, `src/services/contracts.ts`, `src/services/availability.ts`, `src/platform/backend.ts`.
-- Tests: `src/test/setup.ts`, `App.test.tsx`, `theme.test.tsx`, `backend.test.tsx`.
-- Native source/config: `src-tauri/Cargo.toml`, `build.rs`, `src/main.rs`, `src/lib.rs`, `tauri.conf.json`, `capabilities/default.json`, and generated original icons.
-- Branding/docs: `public/brand.svg`, `README.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/SECURITY.md`, and this record.
-- Removed starter demo assets, greeting/opener behavior, and the temporary scaffold. Project-wide caches/build artifacts are ignored. No existing user project files were present before scaffolding.
+1. Choose `src/test/fixtures/SyntheticAndroid.txt` in Import Chat. Verify five records, one missing reference, plain Sinhala/emoji/multiline text, blocked save until explicit day/month/year, editable title, and successful confirmation.
+2. Verify library filename/date/counts/size/status, literal title/filename filtering and summary; verify dashboard archive count, actual usage, recent archives, and independent backup count.
+3. Import `SyntheticMedia.zip`: two records, one media, no missing references. Verify archive-local image and unchanged original source bytes.
+4. Reselect the identical ZIP; cancel its duplicate warning. Preview `SyntheticIOS.txt` and cancel; also cancel the native picker. None should create another archive.
+5. Select unsupported text or malformed ZIP. Verify error and unchanged saved data. Close/restart and verify persistence.
+6. Repeat with a dedicated empty custom vault in a fresh profile; populated vault relocation remains blocked. Check appearance/settings/navigation and unavailable device/backup operations. Browser-only preview must explicitly reject native operations.
 
-Step 02 has not been started.
+## Acceptance checklist
+
+- [x] Existing shell, themes, routes, SQLite/vault safety and independent backup statistics preserved through regression tests; native shell/dashboard exercised.
+- [x] Native TXT/ZIP picker, Rust content validation, cancellation and narrow capabilities.
+- [x] Common Android/iOS parsing, Unicode/multiline/encodings, diagnostics and retained unknown records.
+- [x] Explicit date ambiguity handling; original/local times without invented UTC.
+- [x] Bounded hostile ZIP handling, generated output names, media/missing mapping, no overwrite/execution.
+- [x] Preserving migration 2, atomic persistence, owned recovery journal, SHA-256 duplicate prevention.
+- [x] Real five-stage workflow, library/filter/summary and dashboard refresh.
+- [x] Native synthetic TXT/ZIP saves, media, duplicate cancellation and full application restart verified.
+- [x] Plain-text rendering, local-only runtime design, no sensitive logging or encryption claim.
+- [x] Required documentation, fixtures and automated checks completed.
+- [ ] Genuine private export / broader locale compatibility (no private input supplied).
+
+## Change inventory
+
+Backend: new `src-tauri/src/storage/imports/{models,parser,input,zip_processor,media,staging,archive_repository,service,commands,mod,tests}.rs`; migration `002_chat_import.sql`; storage service/mod/migrations/tests integration; lib.rs, build.rs, capabilities/default.json, Cargo.toml and Cargo.lock. Checked i64-to-u64 count decoding is preserved. Existing Rust files were formatted.
+
+Frontend: new services/imports.ts, updated contracts/domain/availability, importer page, archive library/hook/recent list, dashboard integration, Settings copy and CSS. Tests: import/archive/service tests and DTOs, App regression updates, three synthetic exports. Schema helper executes migration 2. README, ARCHITECTURE, SECURITY, ROADMAP and this report are updated.
+
+## Known limitations
+
+Supported numeric export headers only; language-dependent system/media phrase recognition; BOM required for UTF-16; short years mean 2000-2099 with diagnostics; exactly one compatible conversation per ZIP; ZIP64/split/encrypted/unsupported compression rejected; bounded inputs; MIME values are extension hints and media is stored opaquely. Identical-file reimport, overlap merging, vault encryption, phone backup access and Step 04's full viewer are not implemented. Unknown recovery ownership preserves files for inspection.
