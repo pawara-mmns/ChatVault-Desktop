@@ -2,7 +2,7 @@
 
 A privacy-first, offline Windows application foundation for local chat archives. Tauri 2 + Rust, React + TypeScript + Vite, pnpm, Tailwind CSS, shadcn/ui button conventions, React Router, and Lucide icons.
 
-**Phase 01, Step 03: WhatsApp Chat Export Importer** adds a working local text/ZIP import workflow: native file selection, bounded analysis, a real preview, explicit date-format confirmation, atomic persistence, duplicate detection, and an archive metadata library. Step 01/02 navigation, themes, SQLite, vault settings, and real storage statistics are preserved. The full conversation viewer, backup creation, and device access remain for later steps. There are no production demo records or simulated native operations.
+**Phase 01, Step 04: Local Chat Viewer, Media Viewer & Search** extends the real TXT/ZIP importer with a read-only conversation reader, bounded message pages, offline substring search, image lightbox, and supported local audio/video playback. Steps 01–03 navigation, themes, import, SQLite, vault settings and statistics are preserved. Backup creation and device access remain future work. There are no production demo records or simulated native operations.
 
 ChatVault Desktop is independent and unofficial. It is not affiliated with, endorsed by, or sponsored by WhatsApp or Meta. Original branding is used.
 
@@ -21,6 +21,20 @@ Identical original SHA-256 hashes are rejected as duplicates; cancel and open th
 Default safety limits are centrally configurable in Rust `ImportLimits`: 256 MiB source ZIP, 16 MiB text, 64 MiB per expanded entry, 512 MiB total expansion, 5,000 ZIP entries, 200:1 compression ratio, 32 text candidates, and 100,000 records/media references. Source text is read into bounded memory; hashing, media extraction, and file persistence stream in chunks. Analysis/save use indeterminate, accurate stage labels.
 
 Synthetic fixtures are provided in `src/test/fixtures/SyntheticAndroid.txt`, `SyntheticIOS.txt`, and `SyntheticMedia.zip`. They contain no private conversations. The Android fixture deliberately needs a date-order choice and includes Sinhala, multiline text, a missing media placeholder, and HTML-looking plain text. The ZIP fixture contains a synthetic conversation and a tiny image. Use a disposable test profile/vault when manually testing.
+
+## Read and search saved conversations
+
+In **Archives**, choose **Read chat**, or select **Read imported chat** after import. The reader shows genuine last-message previews, counts and dates, a neutral sender timeline, date separators, missing-media notices, and collapsible participant/source/media details. Conversation titles can be filtered. The selected conversation ID is retained for the current desktop session. No local account owner is guessed and messages cannot be sent, edited or deleted.
+
+Use **Load older/newer messages** or **Newest available**. Rust uses indexed message-ID cursors in original import order; React retains at most 120 records rather than loading the whole chat. Very long records are readable through 4,096-unit text sections. Chat dates remain local/unknown-timezone or show their original string; the reader does not convert them to UTC.
+
+**Search messages** searches message text and sender within the selected conversation or all archives. Literal substrings of three or more Unicode characters use an NFC/lowercase FTS5 trigram index, including Sinhala and German combining-character cases. Shorter queries scan at most 2,000 records per request: **Continue search** examines the next section, even when the current section has no results. Each result page contains at most 50 matches. Previous/next results and direct result selection open the saved message context. Highlights preserve escaping and original text. Search has no Boolean/FTS query-language operators.
+
+Images load only when requested. PNG, JPEG, WebP and GIF are supported when the file signature and WebView decoder agree; images are limited to 16 MiB and known dimensions to 25 megapixels. The lightbox has zoom, fit and previous/next images in its current gallery page. Audio/video use native WebView controls: WAV/MP3/Ogg/Opus/AAC/M4A and MP4/WebM depend on installed WebView codec support. No conversion framework is bundled. Unsupported/damaged files produce feedback. Captions/transcripts are not fabricated.
+
+PDF and supported office/text attachments have an explicit **Open document** action using the registered Windows application after Rust revalidation. In-app PDF rendering is not enabled. Imported HTML/SVG/scripts/executables are not treated as application documents. Media URLs contain temporary tokens, never local paths; Rust checks database ownership, vault/archive markers, safe ancestors, file type/size and range bounds on every request. No broad Tauri asset scope is enabled.
+
+`SyntheticViewerMedia.zip` adds a generated 160×100 image, a four-second synthetic PCM tone, and a deliberately undecodable MP4 container for error testing. Recreate it with `node scripts/generate-viewer-fixtures.mjs`. No real voice recordings or private images are included. See the validation report for measured 12,000-record performance and exact native coverage. Vault files, the database and the search index are **not encrypted by ChatVault**.
 
 ## Windows setup
 
@@ -100,6 +114,6 @@ Readable chat exports are different from encrypted native backup databases. Copy
 
 ## Validation and current limitations
 
-Build, lint, all 41 frontend tests, the auxiliary in-memory SQL check, `cargo check --locked`, and all 49 Windows Rust tests passed on 2026-11-04. The Rust suite includes parser, ZIP security, migration preservation, atomic rollback, duplicate detection, persisted messages/media, custom vaults, recovery, and service restart checks. Rust/Cargo 1.99.1 and Cargo.lock are available. Native smoke-test evidence and remaining acceptance checks are recorded in the validation report; synthetic fixtures contain no private conversations.
+Build, lint, frontend tests, schema checks and Windows Rust tests are executed for each completed step. Step 04 adds preserving migration 3, cursor/context/search tests, media authorization/range/path checks, bounded frontend rendering, and measured 12,000-record tests. Exact current counts, native evidence, environment constraints and remaining limitations are in the validation report. Rust/Cargo 1.99.1 and Cargo.lock are available.
 
-See [validation and manual acceptance](docs/VALIDATION.md), [architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and [roadmap](docs/ROADMAP.md). Step 03 is implemented; Step 04's full conversation viewer remains unstarted. No Git operations were performed.
+See [validation and manual acceptance](docs/VALIDATION.md), [architecture](docs/ARCHITECTURE.md), [security](docs/SECURITY.md), and [roadmap](docs/ROADMAP.md). Steps 01–04 are implemented; Step 05 is not started. No Git operations were performed.
