@@ -29,6 +29,12 @@ database.exec(
     'utf8',
   ),
 );
+database.exec(
+  readFileSync(
+    new URL('../src-tauri/migrations/004_device_notes.sql', import.meta.url),
+    'utf8',
+  ),
+);
 database.exec('COMMIT;');
 for (const table of [
   'app_settings',
