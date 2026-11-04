@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-choose-vault-directory"
+description = "Enables the choose_vault_directory command without any pre-configured scope."
+commands.allow = ["choose_vault_directory"]
+
+[[permission]]
+identifier = "deny-choose-vault-directory"
+description = "Denies the choose_vault_directory command without any pre-configured scope."
+commands.deny = ["choose_vault_directory"]
