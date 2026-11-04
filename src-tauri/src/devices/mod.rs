@@ -1,8 +1,9 @@
-mod adapter;
+pub(crate) mod adapter;
 pub mod commands;
 mod discovery;
-mod models;
+pub(crate) mod models;
 pub(crate) mod repository;
+pub(crate) mod scan;
 #[cfg(test)]
 mod tests;
 #[cfg(windows)]
@@ -32,6 +33,7 @@ struct Inner {
     adapter: Arc<dyn DeviceAdapter>,
     cache: Mutex<Cache>,
     active: Mutex<Option<Arc<AtomicBool>>>,
+    backup_active: AtomicBool,
 }
 #[derive(Clone)]
 pub struct DeviceState(Arc<Inner>);
@@ -41,11 +43,12 @@ impl Default for DeviceState {
     }
 }
 impl DeviceState {
-    fn new(adapter: Arc<dyn DeviceAdapter>) -> Self {
+    pub(crate) fn new(adapter: Arc<dyn DeviceAdapter>) -> Self {
         Self(Arc::new(Inner {
             adapter,
             cache: Mutex::new(Cache::default()),
             active: Mutex::new(None),
+            backup_active: AtomicBool::new(false),
         }))
     }
     pub fn list(&self) -> Result<DeviceList> {
@@ -85,7 +88,11 @@ impl DeviceState {
             .ok_or_else(|| error("disconnected"))
     }
     pub fn cancel(&self) -> Result<()> {
-        if let Some(cancel) = self.0.active.lock().map_err(|_| error("failed"))?.as_ref() {
+        let active = self.0.active.lock().map_err(|_| error("failed"))?;
+        if self.0.backup_active.load(Ordering::Acquire) {
+            return Err(error("busy"));
+        }
+        if let Some(cancel) = active.as_ref() {
             cancel.store(true, Ordering::Release);
         }
         Ok(())
@@ -147,6 +154,9 @@ impl DeviceState {
         .map_err(|_| error("failed"))?
     }
     pub async fn refresh(&self) -> Result<DeviceList> {
+        if self.0.backup_active.load(Ordering::Acquire) {
+            return self.list();
+        }
         self.operation(|state, budget| {
             let result = state.0.adapter.enumerate(budget);
             if result.is_err() {
@@ -306,6 +316,53 @@ impl DeviceState {
             Ok(device)
         })
         .await
+    }
+}
+// A backup owns the same single-device-operation slot as Step 05. COM interfaces
+// are still created and dropped only inside the consuming backup worker.
+pub(crate) struct DeviceSession {
+    state: DeviceState,
+    key: String,
+    pub name: Option<String>,
+}
+impl DeviceState {
+    pub(crate) fn acquire_backup(
+        &self,
+        id: &str,
+        cancel: Arc<AtomicBool>,
+    ) -> Result<DeviceSession> {
+        let (key, device) = self.selection(id)?;
+        if device.transport != "usb" {
+            return Err(error("unsupported"));
+        }
+        let mut active = self.0.active.lock().map_err(|_| error("failed"))?;
+        if active.is_some() {
+            return Err(error("busy"));
+        }
+        *active = Some(cancel.clone());
+        self.0.backup_active.store(true, Ordering::Release);
+        Ok(DeviceSession {
+            state: self.clone(),
+            key,
+            name: device.name,
+        })
+    }
+}
+impl DeviceSession {
+    pub(crate) fn open(&self, budget: &mut Budget) -> Result<Box<dyn adapter::Content>> {
+        let live = self.state.0.adapter.enumerate(budget)?;
+        if !live.iter().any(|d| d.key == self.key && d.usb) {
+            return Err(error("disconnected"));
+        }
+        self.state.0.adapter.open(&self.key, budget)
+    }
+}
+impl Drop for DeviceSession {
+    fn drop(&mut self) {
+        if let Ok(mut active) = self.state.0.active.lock() {
+            *active = None;
+            self.state.0.backup_active.store(false, Ordering::Release);
+        }
     }
 }
 fn access_for(code: &str) -> Access {

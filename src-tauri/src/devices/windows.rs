@@ -90,6 +90,15 @@ fn string(values: &IPortableDeviceValues, key: &PROPERTYKEY) -> Option<String> {
             .and_then(|s| clean(&s))
     }
 }
+fn original_string(values: &IPortableDeviceValues, key: &PROPERTYKEY) -> Option<String> {
+    unsafe {
+        values
+            .GetStringValue(key)
+            .ok()
+            .and_then(|p| Allocated(p).text().ok())
+            .filter(|s| !s.is_empty() && s.len() <= 1024)
+    }
+}
 // Check the local PnP ancestry before opening WPD. No network/Bluetooth device is opened.
 fn usb_ancestor(id: &str) -> bool {
     let wide = wide(id);
@@ -162,17 +171,21 @@ fn manager_text(
 }
 impl DeviceAdapter for WindowsPortableDeviceAdapter {
     fn enumerate(&self, budget: &mut Budget) -> Result<Vec<RawDevice>> {
-        let _com = Apartment::new()?;
+        let _com = budget.operation("initialize_com", Apartment::new)?;
         unsafe {
-            let manager: IPortableDeviceManager =
-                CoCreateInstance(&PortableDeviceManager, None, CLSCTX_INPROC_SERVER)
-                    .map_err(native)?;
+            let manager: IPortableDeviceManager = budget.operation("create_manager", || {
+                CoCreateInstance(&PortableDeviceManager, None, CLSCTX_INPROC_SERVER).map_err(native)
+            })?;
             budget.check()?;
-            manager.RefreshDeviceList().map_err(native)?;
+            budget.operation("refresh_devices", || {
+                manager.RefreshDeviceList().map_err(native)
+            })?;
             let mut count = 0;
-            manager
-                .GetDevices(std::ptr::null_mut(), &mut count)
-                .map_err(native)?;
+            budget.operation("enumerate_devices", || {
+                manager
+                    .GetDevices(std::ptr::null_mut(), &mut count)
+                    .map_err(native)
+            })?;
             if count as usize > MAX_DEVICES {
                 return Err(error("limit"));
             }
@@ -180,10 +193,14 @@ impl DeviceAdapter for WindowsPortableDeviceAdapter {
                 return Ok(vec![]);
             }
             let mut pointers = vec![PWSTR::null(); count as usize];
-            let result = manager.GetDevices(pointers.as_mut_ptr(), &mut count);
+            let result = budget.operation("enumerate_devices", || {
+                manager
+                    .GetDevices(pointers.as_mut_ptr(), &mut count)
+                    .map_err(native)
+            });
             // Even partial/error results own allocated strings and must be freed.
             let allocated: Vec<_> = pointers.into_iter().map(Allocated).collect();
-            result.map_err(native)?;
+            result?;
             let mut devices = vec![];
             for p in allocated.iter().take(count as usize) {
                 budget.check()?;
@@ -201,9 +218,9 @@ impl DeviceAdapter for WindowsPortableDeviceAdapter {
         }
     }
     fn open(&self, key: &str, budget: &mut Budget) -> Result<Box<dyn Content>> {
-        let com = Apartment::new()?;
+        let com = budget.operation("initialize_com", Apartment::new)?;
         budget.check()?;
-        if !usb_ancestor(key) {
+        if !budget.operation("check_usb_transport", || Ok(usb_ancestor(key)))? {
             return Err(error("unsupported"));
         }
         unsafe {
@@ -217,16 +234,22 @@ impl DeviceAdapter for WindowsPortableDeviceAdapter {
             let device: IPortableDevice =
                 CoCreateInstance(&PortableDeviceFTM, None, CLSCTX_INPROC_SERVER).map_err(native)?;
             let id = wide(key);
-            device.Open(PCWSTR(id.as_ptr()), &info).map_err(native)?;
+            budget.operation("open_device", || {
+                device.Open(PCWSTR(id.as_ptr()), &info).map_err(native)
+            })?;
             let result = (|| {
                 budget.check()?;
-                let content = device.Content().map_err(native)?;
-                let properties = content.Properties().map_err(native)?;
+                let content =
+                    budget.operation("open_content", || device.Content().map_err(native))?;
+                let properties =
+                    budget.operation("open_properties", || content.Properties().map_err(native))?;
                 let requested =
                     keys(&[WPD_DEVICE_TYPE, WPD_DEVICE_PROTOCOL, WPD_DEVICE_TRANSPORT])?;
-                let values = properties
-                    .GetValues(WPD_DEVICE_OBJECT_ID, &requested)
-                    .map_err(native)?;
+                let values = budget.operation("device_properties", || {
+                    properties
+                        .GetValues(WPD_DEVICE_OBJECT_ID, &requested)
+                        .map_err(native)
+                })?;
                 let transport = values.GetUnsignedIntegerValue(&WPD_DEVICE_TRANSPORT).ok();
                 if transport.is_some_and(|v| v != WPD_DEVICE_TRANSPORT_USB.0 as u32 && v != 0) {
                     return Err(error("unsupported"));
@@ -253,6 +276,7 @@ impl DeviceAdapter for WindowsPortableDeviceAdapter {
                     content,
                     device,
                     identity,
+                    trace: budget.trace.clone(),
                     _com: com,
                 })),
                 Err(e) => {
@@ -269,16 +293,148 @@ struct WpdContent {
     content: IPortableDeviceContent,
     device: IPortableDevice,
     identity: Identity,
+    trace: Option<super::scan::ScanTrace>,
     _com: Apartment,
 }
 impl Drop for WpdContent {
     fn drop(&mut self) {
         unsafe {
-            let _ = self.device.Close();
+            if let Some(trace) = &self.trace {
+                trace.begin("close_device");
+            }
+            let result = self.device.Close().map_err(native);
+            if let Some(trace) = &self.trace {
+                trace.end(result.as_ref().err());
+            }
         }
     }
 }
 impl Content for WpdContent {
+    fn file_metadata(&self, id: &str, budget: &mut Budget) -> Result<FileMetadata> {
+        budget.check()?;
+        unsafe {
+            let id = wide(id);
+            let requested = keys(&[
+                WPD_OBJECT_ORIGINAL_FILE_NAME,
+                WPD_OBJECT_NAME,
+                WPD_OBJECT_SIZE,
+            ])?;
+            let values = self
+                .properties
+                .GetValues(PCWSTR(id.as_ptr()), &requested)
+                .map_err(native)?;
+            let name = original_string(&values, &WPD_OBJECT_ORIGINAL_FILE_NAME)
+                .or_else(|| original_string(&values, &WPD_OBJECT_NAME))
+                .unwrap_or_else(|| "unnamed".into());
+            let size = values.GetUnsignedLargeIntegerValue(&WPD_OBJECT_SIZE).ok();
+            budget.check()?;
+            Ok(FileMetadata { name, size })
+        }
+    }
+    fn read_stream(&self, id: &str, budget: &mut Budget) -> Result<Box<dyn DeviceRead>> {
+        budget.check()?;
+        unsafe {
+            let id = wide(id);
+            let resources = self.content.Transfer().map_err(native)?;
+            let mut optimal = 0;
+            let mut stream = None;
+            resources
+                .GetStream(
+                    PCWSTR(id.as_ptr()),
+                    &WPD_RESOURCE_DEFAULT,
+                    STGM_READ.0,
+                    &mut optimal,
+                    &mut stream,
+                )
+                .map_err(native)?;
+            let stream = stream.ok_or_else(|| error("unsupported"))?;
+            budget.check()?;
+            Ok(Box::new(WpdRead {
+                stream,
+                optimal: (optimal as usize).clamp(16 * 1024, 512 * 1024),
+            }))
+        }
+    }
+    fn visit_children(
+        &self,
+        parent: &str,
+        budget: &mut Budget,
+        visitor: &mut dyn FnMut(Object) -> Result<()>,
+    ) -> Result<()> {
+        budget.check()?;
+        unsafe {
+            let parent = wide(parent);
+            let enumerator = budget.operation("enum_objects", || {
+                self.content
+                    .EnumObjects(0, PCWSTR(parent.as_ptr()), None)
+                    .map_err(native)
+            })?;
+            let requested = keys(&[
+                WPD_OBJECT_NAME,
+                WPD_OBJECT_ORIGINAL_FILE_NAME,
+                WPD_OBJECT_CONTENT_TYPE,
+                WPD_FUNCTIONAL_OBJECT_CATEGORY,
+                WPD_OBJECT_SIZE,
+            ])?;
+            let mut seen = std::collections::HashSet::new();
+            loop {
+                budget.check()?;
+                let mut pointers = [PWSTR::null(); 32];
+                let mut fetched = 0;
+                let status = budget.operation("next_objects", || {
+                    let status = enumerator.Next(&mut pointers, &mut fetched);
+                    status.ok().map(|_| status).map_err(native)
+                });
+                let allocated: Vec<_> = pointers.into_iter().map(Allocated).collect();
+                let status = status?;
+                if fetched as usize > allocated.len() {
+                    return Err(error("failed"));
+                }
+                if fetched == 0 {
+                    if status.0 != 1 {
+                        return Err(error("failed"));
+                    } // Only S_FALSE + zero is documented EOF.
+                    break;
+                }
+                for pointer in allocated.iter().take(fetched as usize) {
+                    budget.entry()?;
+                    let id = pointer.text()?;
+                    if !seen.insert(id.clone()) {
+                        return Err(error("duplicate_object"));
+                    }
+                    let values = budget.operation("object_properties", || {
+                        self.properties
+                            .GetValues(PCWSTR(pointer.0.0), &requested)
+                            .map_err(native)
+                    })?;
+                    let name = original_string(&values, &WPD_OBJECT_ORIGINAL_FILE_NAME)
+                        .or_else(|| original_string(&values, &WPD_OBJECT_NAME))
+                        .unwrap_or_else(|| "unnamed".into());
+                    let folder = values.GetGuidValue(&WPD_OBJECT_CONTENT_TYPE).ok()
+                        == Some(WPD_CONTENT_TYPE_FOLDER);
+                    let storage = values.GetGuidValue(&WPD_FUNCTIONAL_OBJECT_CATEGORY).ok()
+                        == Some(WPD_FUNCTIONAL_CATEGORY_STORAGE);
+                    if let Some(trace) = &budget.trace {
+                        trace.object(folder || storage);
+                    }
+                    let metadata = (!folder && !storage).then(|| FileMetadata {
+                        name: name.clone(),
+                        size: values.GetUnsignedLargeIntegerValue(&WPD_OBJECT_SIZE).ok(),
+                    });
+                    visitor(Object {
+                        metadata,
+                        id,
+                        name,
+                        folder: values.GetGuidValue(&WPD_OBJECT_CONTENT_TYPE).ok()
+                            == Some(WPD_CONTENT_TYPE_FOLDER),
+                        storage: values.GetGuidValue(&WPD_FUNCTIONAL_OBJECT_CATEGORY).ok()
+                            == Some(WPD_FUNCTIONAL_CATEGORY_STORAGE),
+                    })?;
+                }
+            }
+            budget.check()
+        }
+    }
     fn identity(&self) -> Identity {
         Identity {
             category: self.identity.category.clone(),
@@ -344,6 +500,7 @@ impl Content for WpdContent {
                     let storage = values.GetGuidValue(&WPD_FUNCTIONAL_OBJECT_CATEGORY).ok()
                         == Some(WPD_FUNCTIONAL_CATEGORY_STORAGE);
                     objects.push(Object {
+                        metadata: None,
                         id,
                         name,
                         folder,
@@ -354,5 +511,31 @@ impl Content for WpdContent {
             budget.check()?;
             Ok(objects)
         }
+    }
+}
+struct WpdRead {
+    stream: IStream,
+    optimal: usize,
+}
+impl DeviceRead for WpdRead {
+    fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
+        let mut read = 0;
+        unsafe {
+            self.stream
+                .Read(
+                    buffer.as_mut_ptr().cast(),
+                    buffer.len() as u32,
+                    Some(&mut read),
+                )
+                .ok()
+                .map_err(native)?;
+        }
+        if read as usize > buffer.len() {
+            return Err(error("failed"));
+        }
+        Ok(read as usize)
+    }
+    fn optimal_size(&self) -> usize {
+        self.optimal
     }
 }
