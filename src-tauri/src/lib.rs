@@ -35,6 +35,7 @@ pub fn run() {
             app.manage(state.clone());
             app.manage(devices::DeviceState::default());
             app.manage(storage::backups::BackupState::default());
+            app.manage(storage::native::NativeState::default());
             // Bootstrap off the event thread. Commands serialize with this task through the same state.
             tauri::async_runtime::spawn_blocking(move || {
                 let _ = state.run(false, |service| service.overview());
@@ -70,6 +71,12 @@ pub fn run() {
             devices::commands::cancel_device_operation,
             devices::commands::get_known_devices,
             devices::commands::remember_device,
+            storage::native::commands::inspect_native_backup,
+            storage::native::commands::verify_native_key,
+            storage::native::commands::verify_native_key_file,
+            storage::native::commands::import_native_backup,
+            storage::native::commands::get_native_reader_progress,
+            storage::native::commands::cancel_native_reader,
             storage::backups::commands::prepare_backup,
             storage::backups::commands::get_backup_plan_files,
             storage::backups::commands::start_backup,
@@ -90,6 +97,9 @@ pub fn run() {
             ) {
                 if let Some(devices) = app.try_state::<devices::DeviceState>() {
                     let _ = devices.cancel();
+                }
+                if let Some(native) = app.try_state::<storage::native::NativeState>() {
+                    let _ = native.cancel();
                 }
                 if let Some(backups) = app.try_state::<storage::backups::BackupState>() {
                     let _ = backups.cancel();
