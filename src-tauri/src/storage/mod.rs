@@ -5,6 +5,7 @@ pub mod error;
 pub mod imports;
 pub(crate) mod migrations;
 pub mod models;
+pub mod native;
 mod paths;
 mod repository;
 mod service;

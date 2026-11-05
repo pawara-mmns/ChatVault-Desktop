@@ -41,6 +41,21 @@ database.exec(
     'utf8',
   ),
 );
+database.exec(
+  readFileSync(
+    new URL('../src-tauri/migrations/006_native_reader.sql', import.meta.url),
+    'utf8',
+  ),
+);
+database.exec(
+  readFileSync(
+    new URL(
+      '../src-tauri/migrations/007_native_reply_links.sql',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+);
 database.exec('COMMIT;');
 for (const table of [
   'app_settings',
@@ -103,5 +118,5 @@ assert.equal(
 );
 database.close();
 console.log(
-  'PASS: SQL migrations 1-5, empty tables, UTC timestamp defaults, constraints, foreign keys, transactional DDL rollback (in-memory SQLite). Rust migration/service tests remain separate.',
+  'PASS: SQL migrations 1-7, empty tables, UTC timestamp defaults, constraints, foreign keys, transactional DDL rollback (in-memory SQLite). Rust migration/service tests remain separate.',
 );

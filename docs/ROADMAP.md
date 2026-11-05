@@ -31,7 +31,13 @@ Implemented explicit six-stage selection/preflight, separate WhatsApp/Business s
 
 Step 06.2 implements bounded scoped preflight, operation timing/progressive counters, incomplete results, slow/pending states, Cancel Scan, safe retry and stale-event guards. Real scoped Business discovery and one 29,816-byte image transfer with independent source/local SHA-256 and persisted history passed. Larger hardware and native wizard interaction checks remain pending; exact evidence is in VALIDATION.md.
 
-Step 07 has not started. No restore/decryption, auto-resume, incremental scheduling, keys, cloud or retention/deletion feature was added.
+Step 06 remains the read-only copy engine. Native decryption is a separate Step 07 workflow; restore, auto-resume, incremental scheduling, cloud and retention/deletion remain outside scope.
+
+## Step 07 - Native backup reader and integration
+
+Implemented owned snapshot inspection, bounded crypt14/crypt15 standalone-envelope authentication using only matching user-provided keys, restricted plaintext staging, read-only SQLite/schema validation, legacy/modern synthetic schema parsing, explicit plaintext persistence consent, versioned provenance/deduplication, transaction/recovery integration, verified snapshot media references and existing reader/search integration. Migrations 6-7 preserve existing data. Independent Node/OpenSSL fixture tests and Rust/frontend regression evidence are in VALIDATION.md.
+
+The real Business snapshot contains eight header/hash-verified crypt14 candidates, not readable chats yet. Real decryption/parser validation remains PENDING because no matching local key file was provided. No root extraction, key guessing or cloud password assumption is made. Step 08 has not started.
 
 ## Later boundaries
 

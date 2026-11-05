@@ -2620,3 +2620,31 @@ main {
     margin-left: 38%;
   }
 }
+.native-inspector {
+  display: grid;
+  gap: 12px;
+  margin-block: 20px;
+  padding-block: 16px;
+  border-block: 1px solid var(--border);
+}
+.native-inspector h3,
+.native-inspector h4,
+.native-inspector p {
+  margin: 0;
+}
+.native-inspector label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.native-inspector input[type='password'] {
+  min-width: 200px;
+  max-width: 100%;
+}
+.message-record.native-outgoing {
+  margin-left: auto;
+  background: var(--accent-soft, #e1eee8);
+}
+.message-record.native-incoming {
+  margin-right: auto;
+}

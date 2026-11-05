@@ -34,7 +34,7 @@ fn row_summary(row: &Row<'_>) -> rusqlite::Result<ArchiveSummary> {
         diagnostics: Vec::new(),
     })
 }
-const COLUMNS: &str = "id,title,original_filename,source_format,created_at,message_count,media_count,missing_media_count,total_bytes,import_status,original_sha256,date_order,text_encoding";
+const COLUMNS: &str = "id,title,original_filename,COALESCE(native_format,source_format),created_at,message_count,media_count,missing_media_count,total_bytes,import_status,original_sha256,date_order,text_encoding";
 pub fn summary(connection: &Connection, id: &str) -> Result<ArchiveSummary> {
     if id.len() > 128 {
         return Err(error(

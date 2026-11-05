@@ -1,3 +1,5 @@
+import { useStorage } from '../storage/StorageProvider';
+import { NativeInspector } from './NativeInspector';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../shared/components/ui/button';
@@ -27,6 +29,7 @@ export function BackupError({ error }: { error: BackupFailure | null }) {
 }
 export function BackupHistory({ compact = false }: { compact?: boolean }) {
   const { service, progress, setProgress } = useBackups();
+  const storage = useStorage();
   const [history, setHistory] = useState<History | null>(null);
   const [error, setError] = useState<BackupFailure | null>(null);
   const [offset, setOffset] = useState(0);
@@ -237,6 +240,11 @@ export function BackupHistory({ compact = false }: { compact?: boolean }) {
             directory. Published snapshots and phone files are preserved. Retry
             by creating a fresh backup after rescanning.
           </p>
+          <NativeInspector
+            key={selected.id}
+            snapshotId={selected.id}
+            onImported={() => void storage.refresh()}
+          />
           <ul className="backup-file-list">
             {files.map((f) => (
               <li key={f.id}>

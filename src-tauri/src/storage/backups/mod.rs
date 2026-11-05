@@ -1,8 +1,8 @@
 pub mod commands;
-mod files;
+pub(super) mod files;
 pub mod models;
-mod planner;
-mod repository;
+pub(super) mod planner;
+pub(super) mod repository;
 #[cfg(test)]
 mod scan_tests;
 #[cfg(test)]

@@ -153,6 +153,8 @@ fn environment(
 ) {
     let temp = tempfile::tempdir().unwrap();
     let storage = StorageState::new(Ok(temp.path().join("profile")));
+    // Time enumeration, not first-run migrations competing with parallel tests.
+    storage.run(false, |_| Ok(())).unwrap();
     let devices = DeviceState::new(Arc::new(f.clone()));
     let state = BackupState::default();
     let id = block(devices.refresh()).unwrap().devices[0].id.clone();

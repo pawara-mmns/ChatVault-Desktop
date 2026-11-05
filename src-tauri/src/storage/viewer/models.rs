@@ -36,6 +36,11 @@ pub struct Attachment {
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Message {
+    pub native_direction: Option<String>,
+    pub native_timestamp_ms: Option<i64>,
+    pub native_type: Option<i64>,
+    pub native_reply_key: Option<String>,
+    pub native_reply_id: Option<String>,
     pub id: String,
     pub sequence: i64,
     pub sender: Option<String>,

@@ -28,6 +28,11 @@ export interface Attachment {
   missing: boolean;
 }
 export interface SavedMessage {
+  nativeDirection?: string | null;
+  nativeTimestampMs?: number | null;
+  nativeType?: number | null;
+  nativeReplyKey?: string | null;
+  nativeReplyId?: string | null;
   id: string;
   sequence: number;
   sender: string | null;
@@ -178,7 +183,13 @@ export function privateMediaUrl(token: string) {
 export function messageTime(message: {
   localTimestamp: string | null;
   originalTimestamp: string | null;
+  nativeTimestampMs?: number | null;
 }) {
+  if (message.nativeTimestampMs != null) {
+    const date = new Date(message.nativeTimestampMs);
+    if (!Number.isNaN(date.valueOf()))
+      return date.toISOString().replace('T', ' ') + ' (UTC)';
+  }
   return message.localTimestamp
     ? `${message.localTimestamp.replace('T', ' ')} · local time`
     : (message.originalTimestamp ?? 'Timestamp unavailable');
@@ -186,7 +197,13 @@ export function messageTime(message: {
 export function messageDay(message: {
   localTimestamp: string | null;
   originalTimestamp: string | null;
+  nativeTimestampMs?: number | null;
 }) {
+  if (message.nativeTimestampMs != null) {
+    const date = new Date(message.nativeTimestampMs);
+    if (!Number.isNaN(date.valueOf()))
+      return date.toISOString().slice(0, 10) + ' (UTC)';
+  }
   return (
     message.localTimestamp?.slice(0, 10) ??
     (message.originalTimestamp

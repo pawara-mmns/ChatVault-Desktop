@@ -66,7 +66,7 @@ export function SettingsPage() {
       >
         <div className="settings-title">
           <h2 id="about-heading">About ChatVault Desktop</h2>
-          <Badge>v0.1.0 · Step 06</Badge>
+          <Badge>v0.1.0 · Step 07</Badge>
         </div>
         <div className="about-brand">
           <img src="/brand.svg" alt="" width="48" height="48" />
@@ -80,8 +80,9 @@ export function SettingsPage() {
           <p>
             No accounts, cloud services, external APIs, or analytics. This
             version imports exports and copies accessible phone files only after
-            your confirmation. Native backups remain encrypted; the local vault
-            is not yet encrypted.
+            your confirmation. Native originals stay encrypted; readable native
+            archives require a matching key and plaintext-storage consent. The
+            local vault is not yet encrypted.
           </p>
         </div>
         <p className="disclaimer">
