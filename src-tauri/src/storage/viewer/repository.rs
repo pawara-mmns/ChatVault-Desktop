@@ -116,7 +116,7 @@ impl StorageService {
                 ));
             }
         };
-        let mut statement=self.connection.prepare(&format!("SELECT id,sequence_number,sender,message_text,original_timestamp,local_timestamp,classification FROM messages WHERE conversation_id=?1 AND {predicate} AND ?2 IS ?2 ORDER BY sequence_number {order},id {order} LIMIT ?3")).map_err(|_|StorageError::database())?;
+        let mut statement=self.connection.prepare(&format!("SELECT id,sequence_number,sender,message_text,original_timestamp,local_timestamp,classification,native_direction,native_timestamp_ms,native_type,native_reply_key,native_reply_id FROM messages WHERE conversation_id=?1 AND {predicate} AND ?2 IS ?2 ORDER BY sequence_number {order},id {order} LIMIT ?3")).map_err(|_|StorageError::database())?;
         let mut items = statement
             .query_map(params![conversation_id, sequence, limit], |row| {
                 Ok(Message {
@@ -127,6 +127,11 @@ impl StorageService {
                     original_timestamp: row.get(4)?,
                     local_timestamp: row.get(5)?,
                     classification: row.get(6)?,
+                    native_direction: row.get(7)?,
+                    native_timestamp_ms: row.get(8)?,
+                    native_type: row.get(9)?,
+                    native_reply_key: row.get(10)?,
+                    native_reply_id: row.get(11)?,
                     attachments: Vec::new(),
                 })
             })
@@ -183,7 +188,7 @@ impl StorageService {
         } else {
             let mut page =
                 self.read_messages(conversation_id, Some(message_id), Direction::Older, 1)?;
-            let row=self.connection.query_row("SELECT id,sequence_number,sender,message_text,original_timestamp,local_timestamp,classification FROM messages WHERE id=?1 AND conversation_id=?2",params![message_id,conversation_id],|r|Ok(Message{id:r.get(0)?,sequence:r.get(1)?,sender:r.get(2)?,text:r.get(3)?,original_timestamp:r.get(4)?,local_timestamp:r.get(5)?,classification:r.get(6)?,attachments:Vec::new()})).map_err(|_|StorageError::database())?;
+            let row=self.connection.query_row("SELECT id,sequence_number,sender,message_text,original_timestamp,local_timestamp,classification,native_direction,native_timestamp_ms,native_type,native_reply_key,native_reply_id FROM messages WHERE id=?1 AND conversation_id=?2",params![message_id,conversation_id],|r|Ok(Message{id:r.get(0)?,sequence:r.get(1)?,sender:r.get(2)?,text:r.get(3)?,original_timestamp:r.get(4)?,local_timestamp:r.get(5)?,classification:r.get(6)?,native_direction:r.get(7)?,native_timestamp_ms:r.get(8)?,native_type:r.get(9)?,native_reply_key:r.get(10)?,native_reply_id:r.get(11)?,attachments:Vec::new()})).map_err(|_|StorageError::database())?;
             page.items.push(row);
             page
         };

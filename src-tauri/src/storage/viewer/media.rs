@@ -146,17 +146,42 @@ impl StorageService {
                 "Archive ownership could not be verified. The attachment was not opened.",
             )
         })?;
-        let expected = vault.join(&relative);
-        let parent = paths::canonical(expected.parent().ok_or_else(unavailable)?)
+        let native: Option<(String,String)> = self.connection.query_row("SELECT n.snapshot_id,n.backup_file_id FROM native_media_links n JOIN archives a ON a.id=?2 WHERE n.media_id=?1 AND a.native_snapshot_id=n.snapshot_id",rusqlite::params![media_id,archive],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(|_|StorageError::database())?;
+        let (path, mut file) = if let Some((snapshot_id, file_id)) = native {
+            let snapshot = crate::storage::native::inspector::load(
+                &self.connection,
+                &vault,
+                &installation,
+                &snapshot_id,
+            )
             .map_err(|_| unavailable())?;
-        let path = parent.join(expected.file_name().ok_or_else(unavailable)?);
-        if !path.starts_with(&root) || path != expected {
-            return Err(failure(
-                "media_denied",
-                "The attachment path is not within its authorized archive.",
-            ));
-        }
-        let mut file = paths::open_regular_file(&path).map_err(|_| unavailable())?;
+            let entry = snapshot
+                .entries
+                .iter()
+                .find(|f| {
+                    f.id == file_id && f.actual_bytes == size as u64 && f.original_name == filename
+                })
+                .ok_or_else(unavailable)?;
+            let path = crate::storage::native::inspector::path(&snapshot, entry)
+                .map_err(|_| unavailable())?;
+            crate::storage::native::inspector::verify(&path, entry, |_| Ok(()))
+                .map_err(|_| unavailable())?;
+            let file = paths::open_regular_file(&path).map_err(|_| unavailable())?;
+            (path, file)
+        } else {
+            let expected = vault.join(&relative);
+            let parent = paths::canonical(expected.parent().ok_or_else(unavailable)?)
+                .map_err(|_| unavailable())?;
+            let path = parent.join(expected.file_name().ok_or_else(unavailable)?);
+            if !path.starts_with(&root) || path != expected {
+                return Err(failure(
+                    "media_denied",
+                    "The attachment path is not within its authorized archive.",
+                ));
+            }
+            let file = paths::open_regular_file(&path).map_err(|_| unavailable())?;
+            (path, file)
+        };
         if file.metadata().map_err(|_| unavailable())?.len() != size as u64 {
             return Err(failure(
                 "media_changed",
