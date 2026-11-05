@@ -43,6 +43,12 @@
     "allow-get-backup-files",
     "allow-reverify-backup",
     "allow-cleanup-backup-staging",
-    "allow-open-backup-location"
+    "allow-open-backup-location",
+    "allow-inspect-native-backup",
+    "allow-verify-native-key",
+    "allow-verify-native-key-file",
+    "allow-import-native-backup",
+    "allow-get-native-reader-progress",
+    "allow-cancel-native-reader"
   ]
 }
