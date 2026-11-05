@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowDown, ChevronUp, ChevronDown } from 'lucide-react';
 import {
@@ -16,17 +17,19 @@ export function MessageBubble({
   message,
   query,
   onEnlarge,
+  conversationId,
 }: {
   message: SavedMessage;
   query: string;
   onEnlarge: (id: string) => void;
+  conversationId?: string;
 }) {
   const system = message.classification === 'system';
   return (
     <article
       id={`message-${message.id}`}
       tabIndex={-1}
-      className={`message-record ${system ? 'system-record' : ''} ${message.classification === 'deleted' ? 'deleted-record' : ''}`}
+      className={`message-record ${system ? 'system-record' : ''} ${message.nativeDirection === 'outgoing' ? 'native-outgoing' : message.nativeDirection === 'incoming' ? 'native-incoming' : ''} ${message.classification === 'deleted' ? 'deleted-record' : ''}`}
       aria-label={`${system ? 'System' : (message.sender ?? 'Unknown sender')} message`}
     >
       <header>
@@ -37,7 +40,18 @@ export function MessageBubble({
           <span>Unclassified record</span>
         )}
       </header>
-      <MessageText key={query} text={message.text} query={query} />
+      {message.classification === 'deleted' && !message.text ? (
+        <p>Deleted message (stored placeholder)</p>
+      ) : (
+        <MessageText key={query} text={message.text} query={query} />
+      )}
+      {message.nativeReplyId && conversationId && (
+        <Link
+          to={`/chats?conversation=${encodeURIComponent(conversationId)}&message=${encodeURIComponent(message.nativeReplyId)}`}
+        >
+          View replied-to message
+        </Link>
+      )}
       {message.attachments.map((attachment) => (
         <MediaMessage
           key={attachment.id}
@@ -341,6 +355,7 @@ export function MessageTimeline({
             )}
             <div className={message.id === targetId ? 'search-target' : ''}>
               <MessageBubble
+                conversationId={conversationId}
                 message={message}
                 query={query}
                 onEnlarge={onEnlarge}
