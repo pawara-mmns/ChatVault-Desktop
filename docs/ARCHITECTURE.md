@@ -1,4 +1,18 @@
-# Architecture — Step 06
+# Architecture - Step 07
+
+## Step 07 native reader
+
+Rust storage/native separates inspector, crypto, schema parser, privacy ACLs, service state and six typed IPC commands: inspect_native_backup, verify_native_key, verify_native_key_file, import_native_backup, get_native_reader_progress and cancel_native_reader. No command accepts a frontend filesystem path. The key-file dialog consumes its path in Rust. NativeState serializes work, owns cancellation/progress and a short-lived plaintext preview; the installation coordinator prevents conflicting import/backup/vault mutations. Heavy work runs on blocking workers; progress polling uses a separate mutex.
+
+Inspection binds the snapshot UUID to the current vault/installation marker, validates manifest schema and its complete database inventory, stats snapshot files without reading media contents, hashes candidates, and identifies supported headers/footer envelopes. No phone access or key attempt occurs. Ciphertext is hashed again before decryption. GCM authentication precedes any plaintext output; a restricted owned stage holds the bounded decompressed SQLite. Source opens read-only/query-only with integrity/schema checks and cancellation hooks. Keys are consumed and zeroized where practical before a preview is retained. Compatibility and supply-chain evidence are in NATIVE_COMPATIBILITY.md.
+
+The parser fingerprints ordinary legacy messages or modern message/chat/jid tables and streams ordered IDs/rows. Native identifiers/direction/UTC milliseconds/types and unique reply references augment the existing messages. Raw JIDs/LIDs stay distinct and contact names are never guessed. Unknown content is retained as stored text with diagnostics. Verified application-relative path, size and hash evidence associates snapshot media; missing/ambiguous references remain unresolved.
+
+Migration 6 adds native provenance/parser/diagnostic columns to archives, native message semantics and native_media_links. Migration 7 adds nullable self-reply references/indexing. Original tables/FKs and TXT/ZIP rows are retained. The old source_type constraint stays as a legacy discriminator; native_format/native_source_app/native_snapshot_id are authoritative provenance, and archive summaries prefer native_format. A partial unique index on snapshot/parser rejects duplicates; a newer parser permits a separate explicit revision.
+
+After the second consent, the existing durable import_jobs intent precedes creation of an owned archive directory. A transaction saves conversations/messages/associations/search and deletes that intent, then commits. Errors roll back records and clean only that owned output. Existing recovery reconciles abandoned intents and stages. The archive directory needs only its ownership marker; media remains in the snapshot through native_media_links. The existing viewer resolver checks both archive and snapshot ownership/inventory/hash and retains all token/range/signature/size/origin safeguards. No generic backup directory is exposed as a media URL.
+
+The React inspector lives in history details. Separate consent gates temporary processing and persistent plaintext; key entry is cleared on submission. The reader receives native direction/UTC timestamps/unique reply IDs, using the same sidebar, cursor pages, search navigation and media components. Storage counts refresh after committed import. Successful synthetic imports prove this path; actual encrypted Business SQLite schemas/messages remain unvalidated without the matching key.
 
 ## Step 06.2 discovery fixes
 
@@ -65,7 +79,7 @@ The shared provider polls enumeration every 15 seconds while visible, suppresses
 
 The existing 20 commands remain; eight narrow main-window permissions add `list_connected_devices`, `refresh_connected_devices`, `get_device_details`, `check_device_file_access`, `discover_whatsapp_storage`, `cancel_device_operation`, `get_known_devices`, and `remember_device`. Expensive commands are asynchronous; no arbitrary path, executable, SQL, or WPD write endpoint exists. The remember command requires the current issued handle and a boolean preference; the UI requires explicit consent.
 
-Migration 4 adds a separate STRICT `portable_device_notes` table (random local ID, display name, optional category, last detected UTC milliseconds, preferred flag). The initial `devices` table enforces Android-only platform and already participates in backup foreign keys, so it is preserved rather than rebuilt to adopt unknown portable devices. Notes are bounded to 100 and are separate from live observations. No raw/hashed hardware recognition identifier is saved, and no automatic matching by friendly name is attempted. Preferences are historical notes only after reconnect/restart. Step 06 reuses these adapter boundaries with fresh explicit selection and read-only resource streams. Decryption remains unsupported. ADB is intentionally omitted.
+Migration 4 adds a separate STRICT `portable_device_notes` table (random local ID, display name, optional category, last detected UTC milliseconds, preferred flag). The initial `devices` table enforces Android-only platform and already participates in backup foreign keys, so it is preserved rather than rebuilt to adopt unknown portable devices. Notes are bounded to 100 and are separate from live observations. No raw/hashed hardware recognition identifier is saved, and no automatic matching by friendly name is attempted. Preferences are historical notes only after reconnect/restart. Step 06 reuses these adapter boundaries with fresh explicit selection and read-only resource streams. Device discovery/copying does not decrypt; the separate Step 07 reader requires an explicitly provided matching key. ADB is intentionally omitted.
 
 Official API semantics: [enumerating WPD devices](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/enumerating-devices), [read-only device Open](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-iportabledevice-open), [object enumeration](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/enumerating-content), [device properties](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/device-properties), [CfgMgr32 interface-to-instance example](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/porting-from-setupapi-to-cfgmgr32), and [WPD cancellation semantics](https://learn.microsoft.com/en-us/windows/win32/api/portabledeviceapi/nf-portabledeviceapi-iportabledevice-cancel). The app uses cooperative cancellation between calls rather than sharing a COM interface across threads to force a cancel.
 
@@ -156,7 +170,7 @@ Sessions expire after 30 minutes and are checked/released on subsequent operatio
 
 ## Preserved Step 02 storage baseline
 
-The sections below describe the initial schema/storage foundation. Migration 2 and the import commands above extend that baseline; schema version 5 is current.
+The sections below describe the initial schema/storage foundation. Migration 2 and the import commands above extend that baseline; schema version 7 is current.
 
 ## Responsibilities
 
@@ -200,7 +214,7 @@ Frontend StorageProvider prevents conflicting requests, disables controls while 
 
 `<app_local_data_dir>/database/chatvault.sqlite3` is independent of the current vault. Windows normally resolves the base under `%LOCALAPPDATA%\app.chatvault.desktop`. The application does not store databases in the repository or `public/`.
 
-`PRAGMA application_id = 0x43565431` identifies ChatVault. `PRAGMA user_version` and `schema_migrations(version, applied_at)` both track the current version 5. All pending embedded migrations, ledger entries, and version/identity changes share one immediate transaction. Failure drops/rolls back that transaction. Reapplying a completed version preserves rows. Unknown, inconsistent, and newer schemas fail safely. A nonempty unrecognized SQLite database is never adopted. Orphan WAL/SHM/journal files without the main database cause an error rather than replacement creation.
+`PRAGMA application_id = 0x43565431` identifies ChatVault. `PRAGMA user_version` and `schema_migrations(version, applied_at)` both track the current version 7. All pending embedded migrations, ledger entries, and version/identity changes share one immediate transaction. Failure drops/rolls back that transaction. Reapplying a completed version preserves rows. Unknown, inconsistent, and newer schemas fail safely. A nonempty unrecognized SQLite database is never adopted. Orphan WAL/SHM/journal files without the main database cause an error rather than replacement creation.
 
 Application creation/import timestamps are nonnegative UTC Unix epoch **milliseconds** in INTEGER columns. SQLite supplies initial timestamps with `unixepoch('subsec')`. Imported chat timestamps retain their original string and nullable local ISO value with timezone uncertainty; their UTC INTEGER timestamp remains NULL.
 

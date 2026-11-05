@@ -1,0 +1,42 @@
+# Native backup compatibility and research gate
+
+Research date: 2026-11-04. This is an interoperability implementation, not WhatsApp-supported recovery software. A recognized header is not proof that a database can be authenticated, decompressed, parsed or restored by WhatsApp.
+
+## Format and implementation evidence
+
+The compatibility review used the primary [wa-crypt-tools project](https://github.com/ElDavoo/wa-crypt-tools), its [prefix definition](https://github.com/ElDavoo/wa-crypt-tools/blob/main/proto/backup_prefix.proto), [crypt14 cipher fields](https://github.com/ElDavoo/wa-crypt-tools/blob/main/proto/C14_cipher.proto), [crypt15 IV](https://github.com/ElDavoo/wa-crypt-tools/blob/main/proto/C15_IV.proto), [key-type enum](https://github.com/ElDavoo/wa-crypt-tools/blob/main/proto/key_type.proto), and database/key implementations. They identify a varint-sized protobuf prefix, cipher-dependent IV/key information, AES-GCM and two different trailer styles. Fixed offsets such as “every crypt14 has a 191-byte header” are not used. The real saved crypt14 candidates have 194-byte protobuf messages plus their two-byte size prefix.
+
+The current reader deliberately supports the standalone envelope only: bounded varint/protobuf header, 16-byte IV, ciphertext, 16-byte GCM tag and 16-byte whole-file MD5 footer. The MD5 footer is a format/checksum check, **not** authentication. GCM authentication is mandatory before plaintext is written, decompressed or parsed. Tag-only/multifile/incremental/ZIP payloads, crypt12/crypt20, passkey/password modes and unknown prefix layouts are rejected. There is no force/ignore-authentication path.
+
+Crypt14 requires an explicitly selected matching local key file: the documented 131-byte key layout or its exact 158-byte Java byte-array encoding. The cipher/version/salts and embedded salt hash are validated. General Java object deserialization is not included. The encryption key is used directly for this verified family. No key is extracted from Android storage and no instructions to bypass locks or root a phone are implemented.
+
+Crypt15 accepts a matching 32-byte root encoded as exactly 64 hexadecimal characters for the supported root-key modes. HKDF-SHA256 uses a zero salt and the backup-encryption context; the actual encryption key is derived rather than assuming the entered root is the AES key. Passwords/passkeys and other key modes are rejected; a cloud password or arbitrary 64-digit value is not presumed compatible.
+
+## License and supply-chain review
+
+wa-crypt-tools is GPL-3.0 licensed. Its runtime, generated protobuf classes, scripts and binaries are not bundled, installed or executed by ChatVault; its format observations were research references for an independent Rust implementation. No downloaded unknown executable or cloud decryptor is used. This is not a claim that the entire application has received a legal or security audit.
+
+The added cryptographic dependencies were checked with Cargo metadata: aes 0.8.4, aes-gcm 0.10.3, ghash 0.5.1, hkdf 0.12.4, hmac 0.12.1, md-5 0.10.6 and zeroize 1.8.2 use MIT OR Apache-2.0 licenses. flate2 1.1.10 uses the same alternatives. Direct versions are pinned and Cargo.lock records transitive resolution/checksums. The [RustCrypto AES-GCM documentation](https://docs.rs/aes-gcm/0.10.3/aes_gcm/) describes its upstream audit and platform timing assumptions; that does not constitute an audit of ChatVault's integration. No cargo-audit or release security audit result is claimed.
+
+`scripts/generate-native-fixtures.mjs` uses Node's OpenSSL-backed AES-GCM/HKDF and zlib to create small synthetic vectors, consumed by the independent Rust decryption path. The fixtures contain only generated messages, identifiers, image bytes and a deliberately public all-07 key. They are test-only and do not seed production data. No private backup/key was copied into project fixtures.
+
+## Database schema scope
+
+The schema review also consulted the primary [WhatsApp-Chat-Exporter Android handler](https://github.com/KnugiHK/WhatsApp-Chat-Exporter/blob/main/Whatsapp_Chat_Exporter/android_handler.py). No exporter code is bundled or executed. Parser support is based on actual table/column fingerprints, not a guessed WhatsApp app version:
+
+- `messages-v1`: messages with _id, key_remote_jid, key_from_me, key_id, data, timestamp, remote_resource and media_wa_type. Text, identifiers, order and direction are supported. Legacy serialized/ambiguous media references remain unresolved.
+- `message-chat-jid-v1`: message joined to chat and jid through their row IDs, with from_me, sender_jid_row_id, timestamp, message_type, text_data and key_id. Optional verified message_media and message_quoted columns support media and reply evidence. Missing optional tables do not fabricate records.
+
+Only ordinary SQLite tables are queried. Views/virtual tables do not satisfy required schema checks. Read-only/query-only mode, trusted_schema=OFF, bounded field lengths, quick_check and a cancellation/deadline progress handler are used. UTC epoch milliseconds and original identifiers are preserved. LIDs are never converted to phone numbers or automatically merged with other JIDs. Contact names are not guessed or fetched from the phone; available raw identifiers and stored group subjects are shown. Unsupported message bodies remain their stored text, with diagnostic counts, rather than invented descriptions. Type-15 modern deleted placeholders and type-7 modern system records are distinguished. Detailed system-action decoding, reactions, receipts, external wa.db/contact enrichment and newer schema families are not claimed supported.
+
+Synthetic fixtures verify both schema families, group/individual/LID separation, Unicode/Sinhala/emoji, direction, ordering, deletion/system records, missing/unknown types, media links and unique reply references. The actual encrypted Business databases' SQLite schemas remain **unverified without a matching key**.
+
+## Media and persistence limits
+
+Native media matching requires a database-relative application path, expected size, SHA-256 reference and a unique corresponding snapshot entry. Blob-32 and hexadecimal-64 media hashes are supported; missing/other encodings remain unresolved. The candidate's bytes are rehashed before association, and the existing media resolver revalidates snapshot ownership/inventory/hash before authorization. Filename-only matches and ambiguous matches are rejected. Media files are referenced through native_media_links and are not copied again. Existing signature, size/pixel, origin, token, range and explicit document-opening safeguards remain in force.
+
+Input is capped at 256 MiB, decompressed SQLite at 1 GiB, decompression ratio at 200 plus a 1 MiB allowance, message count at 1,000,000, conversations at 100,000, field length at 1 MiB, and worker time at ten minutes checked at cooperative boundaries. AES-GCM authenticates a bounded in-place ciphertext buffer; it is not an unbounded streaming cipher. Decompression, hashing and row extraction stream in bounded chunks. SQLite sorts only integer IDs/timestamps before fetching message rows; React still uses the existing cursor pagination/window. A single cryptographic/SQLite call can delay cancellation until it returns.
+
+Readable previews expire after 15 minutes and are cleaned on subsequent progress/command processing or panel cancellation. Windows staging directories use a protected inheritable DACL granting the current user and SYSTEM; Unix uses mode 0700. Owned staging/leases and existing import recovery remove abandoned plaintext after restart when the original vault is available. If cleanup cannot safely validate a path or its drive is missing, files are preserved for recovery instead of deleting unrelated data. Keys/derived buffers are zeroized where practical; JavaScript/IPC copies, SQLite page caches and every plaintext allocation cannot be guaranteed erased. Secure SSD erasure is not promised.
+
+Persistent readable records, FTS and WAL remain unencrypted. Separate explicit consent gates temporary plaintext processing and persistent import. Original encrypted snapshots remain unchanged. Duplicate imports of a snapshot/parser version are rejected; a later parser version creates a separate explicit revision and never overwrites an earlier archive. No restore-to-phone, key recovery, brute force, network decryption or Step 08 behavior is implemented.

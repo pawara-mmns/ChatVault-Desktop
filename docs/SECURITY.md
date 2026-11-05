@@ -1,8 +1,18 @@
-# Security and privacy — Step 06
+# Security and privacy - Step 07
+
+## Native reader and plaintext boundary
+
+Step 07 decrypts only a selected, owned, hash-verified standalone supported envelope after an explicitly supplied compatible key and processing consent. AES-GCM authentication is mandatory; no force mode, key extraction, brute force, lock bypass, root or network service exists. Unknown formats/password/passkey modes remain encrypted. Research/licensing/test scope is documented in NATIVE_COMPATIBILITY.md. No upstream decryptor binary or script is executed.
+
+Keys and derived material use zeroizing Rust buffers and zeroizing cipher support where practical, with no persistence or logging. Key files are selected/consumed only in Rust. JavaScript clears the password field on submission and uses no local/session storage for keys, but IPC/JavaScript copies and every memory allocation cannot be guaranteed erased.
+
+Authenticated plaintext is bounded and decompressed into exclusively created owned staging. Windows sets protected current-user/SYSTEM inheritable DACLs before plaintext files; Unix uses 0700 directories. SQLite opens read-only/query-only with trusted_schema disabled, ordinary-table/schema/integrity checks, field/row/time limits and cancellation hooks. Original ciphertext is never edited. Owned stage leases/recovery support cancellation/abandoned-stage cleanup without deleting other files; unavailable drives or unsafe ownership are preserved for recovery. This is not secure SSD erasure or protection against privileged/same-user software.
+
+A second explicit consent is required before readable rows, FTS and journals are committed to unencrypted ChatVault storage. No failed or empty parse creates a readable archive. Media associations require scoped path/size/hash evidence and revalidation; filename-only guesses and ambiguous links remain missing. Existing renderer/origin/token/signature/range restrictions still apply. No generic filesystem/key-path IPC or broad permission was introduced.
 
 ## Backup trust and integrity boundary
 
-Step 06 adds read-only WPD resource streams only after explicit Backup Now confirmation. Native database/media files are copied as opaque bytes; encrypted .crypt backups stay encrypted. There is no decryption, phone mutation, restore, scheduling, cloud transfer or automatic attachment execution. The vault, manifests, SQLite and journals are unencrypted and may expose filenames and backup metadata.
+Step 06 adds read-only WPD resource streams only after explicit Backup Now confirmation. Native database/media files are copied as opaque bytes; encrypted .crypt backups stay encrypted. The Step 06 copy engine performs no decryption, phone mutation, restore, scheduling, cloud transfer or automatic attachment execution; the separate Step 07 reader requires matching-key/consent gates. The vault, manifests, SQLite and journals are unencrypted and may expose filenames and backup metadata.
 
 The backend owns device/plan/file UUID authorization, fresh USB transport checks, configured vault paths, disk-capacity checks, generated snapshot destinations and ownership markers. Frontend cannot submit arbitrary WPD IDs or filesystem paths. Incoming SHA-256 must match an independently synced/local-read hash and reliable expected size before promotion. Optional source re-reading is distinct from local write verification. Hashes/markers are neither signatures nor authentication against a hostile same-user process; live files are not atomic snapshots.
 
@@ -48,7 +58,7 @@ A durable import journal precedes final directory creation. SQLite commits every
 
 Chat timestamps remain timezone-unknown; ambiguous date order requires user selection. UTC conversion is not invented. The original bytes, original timestamp strings, local normalized values, chosen date order, hashes, media names, missing references, and diagnostics are retained. The read-only viewer preserves this metadata. Stored media types are extension hints and no media decoder/browser is invoked by importing.
 
-**Imports, SQLite, device notes, originals, extracted media, and temporary staging are not encrypted by ChatVault.** Use a trusted local vault and consider OS disk encryption/access control. Export files contain sensitive plaintext; no content or hash is uploaded to a service. Phone discovery is limited to explicit read-only metadata access; the app does not provide WhatsApp native-backup decryption, account access, or scraping.
+**Imports, SQLite, device notes, originals, extracted media, and temporary staging are not encrypted by ChatVault.** Use a trusted local vault and consider OS disk encryption/access control. Export files contain sensitive plaintext; no content or hash is uploaded to a service. Phone discovery is limited to explicit read-only metadata access. Native-backup decryption is confined to the matching-key workflow described above; account access and scraping remain outside scope.
 
 ## Data and offline behavior
 
@@ -87,7 +97,7 @@ Only regular files within the managed root contribute logical lengths. The ident
 
 ## Current limits
 
-**Neither the vault nor SQLite is encrypted by ChatVault.** WAL/SHM/journal files may also contain database information. The marker is not authentication, a signature, or a backup secret. There is no key-management, secure-deletion, vault migration, retention, or content recovery feature in this step.
+**Neither the vault nor SQLite is encrypted by ChatVault.** WAL/SHM/journal files may also contain database information. The marker is not authentication, a signature, or a backup secret. Native-reader keys are ephemeral inputs, not managed or recoverable secrets. Secure deletion, vault migration and retention remain outside scope.
 
 The app does not isolate storage from other software running as the same user or an administrator. OS permissions and disk encryption matter. Path checks cannot provide a complete security boundary against a hostile local process racing filesystem mutations; an error is reported when detectable changes occur. Keep storage in a trusted, non-synchronized local directory. Known OneDrive paths are rejected, but the app cannot discover/control every third-party sync program or manual copy. Usage totals can change while outside software writes files.
 
